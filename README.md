@@ -21,7 +21,8 @@ git clone https://github.com/epatel/aiy-vision-kit.git && cd aiy-vision-kit
 port/fetch-binaries.sh             # Myriad firmware + models from Google's release image
 port/deploy.sh pi@<host>           # then reboot the Pi
 ```
- See [`port/DEPENDENCIES.md`](port/DEPENDENCIES.md). Work through [`TODO.html`](TODO.html); open it in a browser, and your progress is saved locally.
+
+What changed from Google's stack and why: [`port/DEPENDENCIES.md`](port/DEPENDENCIES.md). Progress checklist: [`TODO.html`](TODO.html); open it in a browser, and your progress is saved locally.
 
 ## Why it isn't just `apt upgrade`
 
