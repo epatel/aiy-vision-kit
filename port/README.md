@@ -53,6 +53,9 @@ The DKMS build takes about 10 minutes on a Pi Zero. Options: `--no-joy-service`,
 The Joy Detector runs at boot. The LED shows how much people in view smile, and pressing the button saves a photo to `~/Pictures`
 (plus an `_annotated` copy with face boxes when a face is in view).
 
+With `install.sh --streaming` it also streams live video: open `http://<pi>:4664/` in a browser (H.264 decoded in the page,
+with the joy overlay). Port 4665 is the protobuf stream the AIY app uses, and 4666 is raw H.264 (`ffplay tcp://<pi>:4666`).
+
 ```bash
 sudo systemctl stop joy_detection_demo        # it holds the camera
 /opt/aiy/venv/bin/python /opt/aiy/python/src/examples/vision/face_detection_camera.py
@@ -70,7 +73,6 @@ and the bonnet stops working after the reboot. `--hold-kernel` avoids that by pi
 
 Not verified yet, on either OS unless noted:
 
-- **Streaming server** (`install.sh --streaming`, the AIY app's live view): not run.
 - **Camera preview and `Annotator` overlays on HDMI.** The DRM preview only starts when a display is connected; untested without one.
 - **Bookworm after the Trixie fixes.** The `pins.py` and Joy Detector changes run on both OSes but were only tested on Trixie. The kernel-version
   checks in the drivers keep the 6.12 code path unchanged.

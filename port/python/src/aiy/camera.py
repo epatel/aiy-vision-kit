@@ -18,8 +18,8 @@ Differences from picamera:
   * ``start_preview()`` only shows a DRM preview when an HDMI display is connected,
     or when ``AIY_CAMERA_PREVIEW=1``; ``AIY_CAMERA_PREVIEW=0`` disables it.
   * ``annotate_text`` is drawn on captured images only, not on the preview or video.
-  * ``request_key_frame()`` is a no-op; H.264 always repeats headers and has an
-    I-frame every ``intra_period`` frames (default: one per second).
+  * ``request_key_frame()`` forces a key frame, at most one per 0.25 s. H.264 always
+    repeats headers and has an I-frame every ``intra_period`` frames (default: one per second).
   * Supported capture formats: jpeg, png, bmp, gif, rgb, bgr. Recording: h264, mjpeg.
 """
 
@@ -53,6 +53,9 @@ SENSOR_MODES = {
     6: (1640, 1232),
     7: (640, 480),
 }
+
+# Minimum time between forced H.264 key frames (see PiCamera.request_key_frame).
+_KEY_FRAME_REQUEST_INTERVAL = 0.25
 
 _CAPTURE_FORMATS = {'jpeg': 'JPEG', 'jpg': 'JPEG', 'png': 'PNG', 'bmp': 'BMP', 'gif': 'GIF'}
 
@@ -191,6 +194,7 @@ class PiCamera:
         self._lock = threading.RLock()
         self._encoder = None
         self._encoder_file = None
+        self._last_key_frame_request = 0.0
         self._preview = False
         self._closed = False
 
@@ -392,7 +396,16 @@ class PiCamera:
                 self._encoder_file = None
 
     def request_key_frame(self, splitter_port=1):
-        pass
+        # The streaming server calls this on every frame until it sees a key
+        # frame, and each force_key_frame() queues one more, so rate-limit:
+        # the forced key frame normally arrives with the next frame.
+        encoder = self._encoder
+        if encoder is None or not hasattr(encoder, 'force_key_frame'):
+            return
+        now = time.monotonic()
+        if now - self._last_key_frame_request >= _KEY_FRAME_REQUEST_INTERVAL:
+            self._last_key_frame_request = now
+            encoder.force_key_frame()
 
     # Lifecycle --------------------------------------------------------------------
 

@@ -103,6 +103,16 @@ That also covers the fresh-card test: `install.sh`'s package list is complete.
   folder. After the fix, 4 presses gave 4 photos. None of them had a detectable face (backlit), so the annotation path was checked with
   `port/tests/joy_photo_annotate.py`: real bonnet faces on `view2.jpg` through the demo's own `Photographer`, giving an original plus `_annotated` with the box and "Joy: 0.81" label.
 
+- **Streaming server (Trixie):** all three ports work with the picamera2 shim.
+  - Raw H.264 (4666): Baseline 820×616 at about 21 fps, SPS/PPS/IDR first, an IDR every 30 frames. It decodes cleanly with ffmpeg, both locally and over Wi-Fi.
+  - Protobuf TCP (4665, `port/tests/streaming_client.py`): `Start` first, then `Video` and SVG `Overlay` messages. The video decodes cleanly.
+  - Web viewer (4664) in Chrome: live video decoded by Broadway.js with the joy overlay; Stop/Start toggle recording on the server.
+  - Fixed: `PiCamera.request_key_frame()` was a no-op, so a client joining a running stream (or recovering after a dropped frame) waited for the
+    periodic IDR. It now calls `H264Encoder.force_key_frame()`, at most once per 0.25 s, because the server asks on every frame and each call queues
+    another key frame. A/B test, second client's time to first frame: **1.31 s → 0.15 s** mean.
+  - Over the Pi Zero's Wi-Fi the server's per-client queue (15 messages) sometimes overflows and drops frames. It resyncs at the next key frame, as designed.
+    One early capture had a single corrupted macroblock that didn't happen again.
+
 **Still open**
 - **Fresh-flash test:** done on Trixie (above). Not repeated on Bookworm: a newly flashed card with only `deploy.sh` run on it. This checks the apt package list catches everything development installed by hand.
 - Joy demo photo on button press, the `joy_detection_demo` systemd service, and the streaming server (`--enable_streaming`) haven't been tried.
