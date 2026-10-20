@@ -196,6 +196,8 @@ class Photographer(Service):
         self._faces = ([], (0, 0))
         self._format = format
         self._folder = folder
+        # Raspberry Pi OS Lite has no ~/Pictures (Google's desktop image did).
+        os.makedirs(os.path.expanduser(folder), exist_ok=True)
 
     def _make_filename(self, timestamp, annotated):
         path = '%s/%s_annotated.%s' if annotated else '%s/%s.%s'

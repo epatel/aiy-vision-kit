@@ -771,7 +771,7 @@ diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/i
      return ', '.join('%s (%.2f)' % pair for pair in classes)
 diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/joy/joy_detection_demo.py port/python/src/examples/vision/joy/joy_detection_demo.py
 --- docs/aiyprojects-raspbian/src/examples/vision/joy/joy_detection_demo.py	2026-10-20 17:54:28
-+++ port/python/src/examples/vision/joy/joy_detection_demo.py	2026-10-20 21:43:17
++++ port/python/src/examples/vision/joy/joy_detection_demo.py	2026-10-20 22:43:22
 @@ -27,7 +27,7 @@
  import time
  
@@ -781,7 +781,16 @@ diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/j
  
  from aiy.board import Board
  from aiy.leds import Color, Leds, Pattern, PrivacyLed
-@@ -204,7 +204,8 @@
+@@ -196,6 +196,8 @@
+         self._faces = ([], (0, 0))
+         self._format = format
+         self._folder = folder
++        # Raspberry Pi OS Lite has no ~/Pictures (Google's desktop image did).
++        os.makedirs(os.path.expanduser(folder), exist_ok=True)
+ 
+     def _make_filename(self, timestamp, annotated):
+         path = '%s/%s_annotated.%s' if annotated else '%s/%s.%s'
+@@ -204,7 +206,8 @@
      def _draw_face(self, draw, face, scale_x, scale_y):
          x, y, width, height = scale_bounding_box(face.bounding_box, scale_x, scale_y)
          text = 'Joy: %.2f' % face.joy_score

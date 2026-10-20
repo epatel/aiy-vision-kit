@@ -98,6 +98,11 @@ That also covers the fresh-card test: `install.sh`'s package list is complete.
   still-image face detection identical to Buster, live camera about 8–11 fps, shim smoke test OK.
 - Trixie's Imager image doesn't give `pi` passwordless sudo. `deploy.sh` needs it (see `port/README.md`).
 
+- **Joy Detector photo on button press (Trixie):** a real press on a fresh install hit `FileNotFoundError`, because Raspberry Pi OS Lite has no
+  `~/Pictures` (Google's desktop image did). The error also killed the photo thread, so every later press was silently ignored. `Photographer` now creates the
+  folder. After the fix, 4 presses gave 4 photos. None of them had a detectable face (backlit), so the annotation path was checked with
+  `port/tests/joy_photo_annotate.py`: real bonnet faces on `view2.jpg` through the demo's own `Photographer`, giving an original plus `_annotated` with the box and "Joy: 0.81" label.
+
 **Still open**
 - **Fresh-flash test:** done on Trixie (above). Not repeated on Bookworm: a newly flashed card with only `deploy.sh` run on it. This checks the apt package list catches everything development installed by hand.
 - Joy demo photo on button press, the `joy_detection_demo` systemd service, and the streaming server (`--enable_streaming`) haven't been tried.
