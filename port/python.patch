@@ -734,6 +734,32 @@ diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/aiy/vision/annota
          # Resolution can be arbitrary.
          camera.resolution = (351, 561)
          camera.start_preview()
+diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/aiy/vision/streaming/server.py port/python/src/aiy/vision/streaming/server.py
+--- docs/aiyprojects-raspbian/src/aiy/vision/streaming/server.py	2026-10-20 17:54:28
++++ port/python/src/aiy/vision/streaming/server.py	2026-10-20 23:15:15
+@@ -604,6 +604,8 @@
+                     self._logger.info('Dropping opcode %d', packet.opcode)
+         except Exception:
+             self._logger.exception('Error while processing websocket request')
++            # End the tx thread too, so the socket is closed and the client removed.
++            self._tx_q.put(None, replace_last=True)
+             return None
+ 
+     def _receive_packet(self):
+@@ -637,9 +639,10 @@
+     def _process_web_request(self):
+         request = _read_http_request(self._socket)
+         request = HTTPRequest(request)
+-        connection = request.headers['Connection']
+-        upgrade = request.headers['Upgrade']
+-        if 'Upgrade' in connection and upgrade == 'websocket':
++        # Headers may be missing (curl sends no Connection) and are case-insensitive.
++        connection = request.headers.get('Connection', '').lower()
++        upgrade = request.headers.get('Upgrade', '').lower()
++        if 'upgrade' in connection and upgrade == 'websocket':
+             sec_websocket_key = request.headers['Sec-WebSocket-Key']
+             self._queue_message(_http_switching_protocols(sec_websocket_key))
+             self._logger.info('Upgraded to WebSocket')
 diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/any_model_camera.py port/python/src/examples/vision/any_model_camera.py
 --- docs/aiyprojects-raspbian/src/examples/vision/any_model_camera.py	2026-10-20 17:54:28
 +++ port/python/src/examples/vision/any_model_camera.py	2026-10-20 19:47:59

@@ -604,6 +604,8 @@ class WsProtoClient(ProtoClient):
                     self._logger.info('Dropping opcode %d', packet.opcode)
         except Exception:
             self._logger.exception('Error while processing websocket request')
+            # End the tx thread too, so the socket is closed and the client removed.
+            self._tx_q.put(None, replace_last=True)
             return None
 
     def _receive_packet(self):
@@ -637,9 +639,10 @@ class WsProtoClient(ProtoClient):
     def _process_web_request(self):
         request = _read_http_request(self._socket)
         request = HTTPRequest(request)
-        connection = request.headers['Connection']
-        upgrade = request.headers['Upgrade']
-        if 'Upgrade' in connection and upgrade == 'websocket':
+        # Headers may be missing (curl sends no Connection) and are case-insensitive.
+        connection = request.headers.get('Connection', '').lower()
+        upgrade = request.headers.get('Upgrade', '').lower()
+        if 'upgrade' in connection and upgrade == 'websocket':
             sec_websocket_key = request.headers['Sec-WebSocket-Key']
             self._queue_message(_http_switching_protocols(sec_websocket_key))
             self._logger.info('Upgraded to WebSocket')

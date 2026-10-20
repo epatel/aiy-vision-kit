@@ -112,6 +112,9 @@ That also covers the fresh-card test: `install.sh`'s package list is complete.
     another key frame. A/B test, second client's time to first frame: **1.31 s → 0.15 s** mean.
   - Over the Pi Zero's Wi-Fi the server's per-client queue (15 messages) sometimes overflows and drops frames. It resyncs at the next key frame, as designed.
     One early capture had a single corrupted macroblock that didn't happen again.
+  - Fixed in the server: a request without a `Connection` header (curl sends none) crashed `_process_web_request()` with `TypeError`, and the error path left
+    the tx thread waiting, so the request hung and the server leaked a client each time. Headers are now read with defaults and compared case-insensitively, and
+    errors end the tx thread so the socket closes. Verified: page and assets 200, missing file 404, POST closes at once, the client count stays flat, WebSocket upgrade still 101.
 
 **Still open**
 - **Fresh-flash test:** done on Trixie (above). Not repeated on Bookworm: a newly flashed card with only `deploy.sh` run on it. This checks the apt package list catches everything development installed by hand.
