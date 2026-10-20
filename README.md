@@ -12,7 +12,16 @@ and the boxes line up with the faces. **Phase 5:** LEDs, buzzer, expansion-pin G
 The button works too. **Phase 4+6:** [`port/install.sh`](port/README.md) sets up a whole card (DKMS drivers, firmware/models,
 udev, venv, Joy Detector service), and every test passes on the installed system. **Trixie** (kernel 6.18, Python 3.13) works as well: a freshly flashed card set up only by `deploy.sh` passes every test.
 
-**To install:** see [`port/README.md`](port/README.md). In short: `port/deploy.sh pi@<host>`, then reboot. See [`port/DEPENDENCIES.md`](port/DEPENDENCIES.md). Work through [`TODO.html`](TODO.html); open it in a browser, and your progress is saved locally.
+**Repository:** <https://github.com/epatel/aiy-vision-kit>
+
+**To install:** see [`port/README.md`](port/README.md). In short:
+
+```bash
+git clone https://github.com/epatel/aiy-vision-kit.git && cd aiy-vision-kit
+port/fetch-binaries.sh             # Myriad firmware + models from Google's release image
+port/deploy.sh pi@<host>           # then reboot the Pi
+```
+ See [`port/DEPENDENCIES.md`](port/DEPENDENCIES.md). Work through [`TODO.html`](TODO.html); open it in a browser, and your progress is saved locally.
 
 ## Why it isn't just `apt upgrade`
 
