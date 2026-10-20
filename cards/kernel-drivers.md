@@ -50,7 +50,8 @@ Still in use, so watch them on new kernels: the legacy integer GPIO API in `pwm-
    (old hand-installed copies would shadow the DKMS ones).
 5. To finish, run `port/deploy.sh pi@HOST`, which rebuilds through DKMS.
 
-Checking on the Pi: `sudo dmesg | grep -E "Myriad ready|SoftPWM|Driver loaded"`, `/usr/sbin/dkms status` (`dkms` isn't on `pi`'s PATH over ssh), `ls -l /dev/vision_spicomm`.
+Checking on the Pi: `sudo journalctl -k -b | grep -E "Myriad ready|SoftPWM|Driver loaded"`. Use the journal, not `dmesg`: `pwm-soft` logs "Starting/Stopping timer"
+for every buzzer tone, so the kernel ring buffer wraps and loses the boot lines within the hour. Also check `/usr/sbin/dkms status` (`dkms` isn't on `pi`'s PATH over ssh), `ls -l /dev/vision_spicomm`.
 
 ## Device tree
 

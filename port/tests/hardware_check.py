@@ -63,12 +63,15 @@ def main():
         results.append(check('all LEDs off', got == [0, 0, 0, 0], str(got)))
 
     from aiy.toneplayer import TonePlayer
-    before = subprocess.run(['dmesg'], capture_output=True, text=True).stdout.count('Registered device pwm')
+    # Read the kernel log from the journal, not dmesg: pwm-soft logs on every tone,
+    # so the ring buffer wraps and a before/after count there stops changing.
+    since = '@%d' % int(time.time())
     TonePlayer(gpio=22, bpm=240).play('C5q', 'E5q', 'G5q', 'C6h')
-    log = subprocess.run(['dmesg'], capture_output=True, text=True).stdout
+    log = subprocess.run(['journalctl', '-k', '--since', since, '-o', 'cat', '--no-pager'],
+                         capture_output=True, text=True).stdout
     registered = [l for l in log.splitlines() if 'Registered device pwm' in l]
-    results.append(check('buzzer via pwm-soft', len(registered) > before,
-                         registered[-1].split('] ')[-1] if registered else 'no pwm-soft export'))
+    results.append(check('buzzer via pwm-soft', bool(registered),
+                         registered[-1] if registered else 'no pwm-soft export in the journal'))
 
     from gpiozero import LED, PWMOutputDevice
     from aiy.pins import PIN_A, LED_1

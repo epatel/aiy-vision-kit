@@ -1,6 +1,6 @@
-diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/aiy/_buzzer.py port/python/src/aiy/_buzzer.py
---- docs/aiyprojects-raspbian/src/aiy/_buzzer.py	2026-10-20 17:54:28
-+++ port/python/src/aiy/_buzzer.py	2026-10-20 20:01:13
+diff -ru docs/aiyprojects-raspbian/src/aiy/_buzzer.py port/python/src/aiy/_buzzer.py
+--- docs/aiyprojects-raspbian/src/aiy/_buzzer.py
++++ port/python/src/aiy/_buzzer.py
 @@ -19,9 +19,28 @@
  frequency, period, and pulse width, and also provide a simple means for playing
  melodic sounds.
@@ -73,9 +73,9 @@ diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/aiy/_buzzer.py po
              self._exported = False
  
      def open(self):
-diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/aiy/camera.py port/python/src/aiy/camera.py
---- docs/aiyprojects-raspbian/src/aiy/camera.py	1970-01-01 01:00:00
-+++ port/python/src/aiy/camera.py	2026-10-20 22:57:52
+diff -ru docs/aiyprojects-raspbian/src/aiy/camera.py port/python/src/aiy/camera.py
+--- docs/aiyprojects-raspbian/src/aiy/camera.py
++++ port/python/src/aiy/camera.py
 @@ -0,0 +1,428 @@
 +# Licensed under the Apache License, Version 2.0.
 +"""picamera-compatible camera for the Vision Kit on libcamera (Picamera2).
@@ -505,9 +505,9 @@ diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/aiy/camera.py por
 +
 +    def __exit__(self, exc_type, exc_value, exc_tb):
 +        self.close()
-diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/aiy/pins.py port/python/src/aiy/pins.py
---- docs/aiyprojects-raspbian/src/aiy/pins.py	2026-10-20 17:54:28
-+++ port/python/src/aiy/pins.py	2026-10-20 22:17:47
+diff -ru docs/aiyprojects-raspbian/src/aiy/pins.py port/python/src/aiy/pins.py
+--- docs/aiyprojects-raspbian/src/aiy/pins.py
++++ port/python/src/aiy/pins.py
 @@ -72,12 +72,14 @@
     (BCM 23). This should be used with :class:`gpiozero.Button`.
  """
@@ -671,9 +671,9 @@ diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/aiy/pins.py port/
              return self.pins.get(spec)
          if isinstance(spec, AIYPinSpec):
              pin = HatPin(spec)
-diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/aiy/vision/annotator.py port/python/src/aiy/vision/annotator.py
---- docs/aiyprojects-raspbian/src/aiy/vision/annotator.py	2026-10-20 17:54:28
-+++ port/python/src/aiy/vision/annotator.py	2026-10-20 19:48:18
+diff -ru docs/aiyprojects-raspbian/src/aiy/vision/annotator.py port/python/src/aiy/vision/annotator.py
+--- docs/aiyprojects-raspbian/src/aiy/vision/annotator.py
++++ port/python/src/aiy/vision/annotator.py
 @@ -30,8 +30,6 @@
  
  from PIL import Image, ImageDraw
@@ -734,9 +734,9 @@ diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/aiy/vision/annota
          # Resolution can be arbitrary.
          camera.resolution = (351, 561)
          camera.start_preview()
-diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/aiy/vision/streaming/server.py port/python/src/aiy/vision/streaming/server.py
---- docs/aiyprojects-raspbian/src/aiy/vision/streaming/server.py	2026-10-20 17:54:28
-+++ port/python/src/aiy/vision/streaming/server.py	2026-10-20 23:15:15
+diff -ru docs/aiyprojects-raspbian/src/aiy/vision/streaming/server.py port/python/src/aiy/vision/streaming/server.py
+--- docs/aiyprojects-raspbian/src/aiy/vision/streaming/server.py
++++ port/python/src/aiy/vision/streaming/server.py
 @@ -604,6 +604,8 @@
                      self._logger.info('Dropping opcode %d', packet.opcode)
          except Exception:
@@ -760,9 +760,9 @@ diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/aiy/vision/stream
              sec_websocket_key = request.headers['Sec-WebSocket-Key']
              self._queue_message(_http_switching_protocols(sec_websocket_key))
              self._logger.info('Upgraded to WebSocket')
-diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/any_model_camera.py port/python/src/examples/vision/any_model_camera.py
---- docs/aiyprojects-raspbian/src/examples/vision/any_model_camera.py	2026-10-20 17:54:28
-+++ port/python/src/examples/vision/any_model_camera.py	2026-10-20 19:47:59
+diff -ru docs/aiyprojects-raspbian/src/examples/vision/any_model_camera.py port/python/src/examples/vision/any_model_camera.py
+--- docs/aiyprojects-raspbian/src/examples/vision/any_model_camera.py
++++ port/python/src/examples/vision/any_model_camera.py
 @@ -26,7 +26,7 @@
  """
  import argparse
@@ -772,9 +772,9 @@ diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/a
  
  from aiy.vision.inference import CameraInference, ModelDescriptor
  from aiy.vision.models import utils
-diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/face_camera_trigger.py port/python/src/examples/vision/face_camera_trigger.py
---- docs/aiyprojects-raspbian/src/examples/vision/face_camera_trigger.py	2026-10-20 17:54:28
-+++ port/python/src/examples/vision/face_camera_trigger.py	2026-10-20 19:47:59
+diff -ru docs/aiyprojects-raspbian/src/examples/vision/face_camera_trigger.py port/python/src/examples/vision/face_camera_trigger.py
+--- docs/aiyprojects-raspbian/src/examples/vision/face_camera_trigger.py
++++ port/python/src/examples/vision/face_camera_trigger.py
 @@ -17,7 +17,7 @@
  from aiy.vision.inference import CameraInference
  from aiy.vision.models import face_detection
@@ -784,9 +784,9 @@ diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/f
  
  
  def main():
-diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/face_detection_camera.py port/python/src/examples/vision/face_detection_camera.py
---- docs/aiyprojects-raspbian/src/examples/vision/face_detection_camera.py	2026-10-20 17:54:28
-+++ port/python/src/examples/vision/face_detection_camera.py	2026-10-20 19:47:59
+diff -ru docs/aiyprojects-raspbian/src/examples/vision/face_detection_camera.py port/python/src/examples/vision/face_detection_camera.py
+--- docs/aiyprojects-raspbian/src/examples/vision/face_detection_camera.py
++++ port/python/src/examples/vision/face_detection_camera.py
 @@ -22,7 +22,7 @@
  """
  import argparse
@@ -796,9 +796,9 @@ diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/f
  
  from aiy.vision.inference import CameraInference
  from aiy.vision.models import face_detection
-diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/image_classification_camera.py port/python/src/examples/vision/image_classification_camera.py
---- docs/aiyprojects-raspbian/src/examples/vision/image_classification_camera.py	2026-10-20 17:54:28
-+++ port/python/src/examples/vision/image_classification_camera.py	2026-10-20 19:47:59
+diff -ru docs/aiyprojects-raspbian/src/examples/vision/image_classification_camera.py port/python/src/examples/vision/image_classification_camera.py
+--- docs/aiyprojects-raspbian/src/examples/vision/image_classification_camera.py
++++ port/python/src/examples/vision/image_classification_camera.py
 @@ -26,7 +26,7 @@
  
  from aiy.vision.inference import CameraInference
@@ -808,9 +808,9 @@ diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/i
  
  def classes_info(classes):
      return ', '.join('%s (%.2f)' % pair for pair in classes)
-diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/joy/joy_detection_demo.py port/python/src/examples/vision/joy/joy_detection_demo.py
---- docs/aiyprojects-raspbian/src/examples/vision/joy/joy_detection_demo.py	2026-10-20 17:54:28
-+++ port/python/src/examples/vision/joy/joy_detection_demo.py	2026-10-20 22:43:22
+diff -ru docs/aiyprojects-raspbian/src/examples/vision/joy/joy_detection_demo.py port/python/src/examples/vision/joy/joy_detection_demo.py
+--- docs/aiyprojects-raspbian/src/examples/vision/joy/joy_detection_demo.py
++++ port/python/src/examples/vision/joy/joy_detection_demo.py
 @@ -27,7 +27,7 @@
  import time
  
@@ -839,9 +839,9 @@ diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/j
          margin = 3
          bottom = y + height
          text_bottom = bottom + margin + text_height + margin
-diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/mobilenet_based_classifier.py port/python/src/examples/vision/mobilenet_based_classifier.py
---- docs/aiyprojects-raspbian/src/examples/vision/mobilenet_based_classifier.py	2026-10-20 17:54:28
-+++ port/python/src/examples/vision/mobilenet_based_classifier.py	2026-10-20 19:47:59
+diff -ru docs/aiyprojects-raspbian/src/examples/vision/mobilenet_based_classifier.py port/python/src/examples/vision/mobilenet_based_classifier.py
+--- docs/aiyprojects-raspbian/src/examples/vision/mobilenet_based_classifier.py
++++ port/python/src/examples/vision/mobilenet_based_classifier.py
 @@ -16,7 +16,7 @@
  """Script to run generic MobileNet based classification model."""
  import argparse
@@ -851,9 +851,9 @@ diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/m
  
  from aiy.vision import inference
  from aiy.vision.models import utils
-diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/object_meter/object_meter.py port/python/src/examples/vision/object_meter/object_meter.py
---- docs/aiyprojects-raspbian/src/examples/vision/object_meter/object_meter.py	2026-10-20 17:54:28
-+++ port/python/src/examples/vision/object_meter/object_meter.py	2026-10-20 19:47:59
+diff -ru docs/aiyprojects-raspbian/src/examples/vision/object_meter/object_meter.py port/python/src/examples/vision/object_meter/object_meter.py
+--- docs/aiyprojects-raspbian/src/examples/vision/object_meter/object_meter.py
++++ port/python/src/examples/vision/object_meter/object_meter.py
 @@ -15,7 +15,7 @@
  """Object detection with servo output demo."""
  import argparse
@@ -863,9 +863,9 @@ diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/o
  
  from aiy.pins import PIN_A
  from aiy.pins import BUTTON_GPIO_PIN
-diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/video_capture/video_capture.py port/python/src/examples/vision/video_capture/video_capture.py
---- docs/aiyprojects-raspbian/src/examples/vision/video_capture/video_capture.py	2026-10-20 17:54:28
-+++ port/python/src/examples/vision/video_capture/video_capture.py	2026-10-20 21:43:17
+diff -ru docs/aiyprojects-raspbian/src/examples/vision/video_capture/video_capture.py port/python/src/examples/vision/video_capture/video_capture.py
+--- docs/aiyprojects-raspbian/src/examples/vision/video_capture/video_capture.py
++++ port/python/src/examples/vision/video_capture/video_capture.py
 @@ -42,7 +42,7 @@
  import io
  import numpy as np
@@ -888,9 +888,9 @@ diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/v
  
      x_start = int(range_x[0] * size[0])
      x_end = int(range_x[1] * size[0] - crop_size[0]) + 1
-diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/tests/camera_inference_latency_test.py port/python/src/tests/camera_inference_latency_test.py
---- docs/aiyprojects-raspbian/src/tests/camera_inference_latency_test.py	2026-10-20 17:54:28
-+++ port/python/src/tests/camera_inference_latency_test.py	2026-10-20 19:47:59
+diff -ru docs/aiyprojects-raspbian/src/tests/camera_inference_latency_test.py port/python/src/tests/camera_inference_latency_test.py
+--- docs/aiyprojects-raspbian/src/tests/camera_inference_latency_test.py
++++ port/python/src/tests/camera_inference_latency_test.py
 @@ -18,7 +18,7 @@
  
  from functools import partial
@@ -900,9 +900,9 @@ diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/tests/camera_infe
  
  from aiy.vision.inference import CameraInference
  from aiy.vision.models import dish_classification
-diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/tests/engine_test.py port/python/src/tests/engine_test.py
---- docs/aiyprojects-raspbian/src/tests/engine_test.py	2026-10-20 17:54:28
-+++ port/python/src/tests/engine_test.py	2026-10-20 19:47:59
+diff -ru docs/aiyprojects-raspbian/src/tests/engine_test.py port/python/src/tests/engine_test.py
+--- docs/aiyprojects-raspbian/src/tests/engine_test.py
++++ port/python/src/tests/engine_test.py
 @@ -1,6 +1,6 @@
  import unittest
  

@@ -15,6 +15,10 @@ SSH key auth works with `-o BatchMode=yes`. `dkms` is in `/usr/sbin`, which isn'
 
 ## Test scripts (copy `port/tests/` to the Pi, run with `/opt/aiy/venv/bin/python`)
 
+From the Mac, `make test_hw`, `make test_face` and `make test_camera` do the copy, stop the Joy Detector, run the test and start it again.
+`make test_stream` leaves the service running (it needs `--streaming`) and waits up to 90 s for port 4665. `make status` checks drivers and service.
+The rest of the table needs a manual run.
+
 | Script | Checks | Needs |
 |---|---|---|
 | `hardware_check.py [--button S]` | LEDs, buzzer, PIN_A GPIO/PWM, LED_1 (and the button) | service stopped |

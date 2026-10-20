@@ -9,18 +9,14 @@ with a picamera-compatible shim on Picamera2, and scripts that set up a freshly 
 
 ## Commands
 
-Run on the Mac, from the repo root:
-- Get the firmware and models (not in git): `port/fetch-binaries.sh` → `vendor/aiy-binaries.tgz`
-- Install or update a card: `port/deploy.sh pi@vision-kit.local [--streaming] [--no-joy-service] [--hold-kernel]`, then `ssh pi@vision-kit.local sudo reboot`
-  (about 10 min; the drivers rebuild every time)
-- Remove from a card: `ssh pi@vision-kit.local 'cd vision-kit-port && sudo ./uninstall.sh'`
-- Options and help: `port/install.sh --help`, `port/fetch-binaries.sh --help`
-
-Run on the Pi as `pi`, after `rsync -a port/tests/ pi@vision-kit.local:vision-kit-port/tests/` and `sudo systemctl stop joy_detection_demo`:
-- Hardware: `/opt/aiy/venv/bin/python vision-kit-port/tests/hardware_check.py`
-- Myriad + model, no camera: `/opt/aiy/venv/bin/python /opt/aiy/python/src/examples/vision/face_detection.py --input ~/view2.jpg`
-- Live camera: `/opt/aiy/venv/bin/python /opt/aiy/python/src/examples/vision/face_detection_camera.py --num_frames 60`
-- Driver status: `sudo dmesg | grep "Myriad ready"`, `/usr/sbin/dkms status`
+`make` (from the repo root, on the Mac) lists every target as a numbered menu. `HOST=pi@…` and `ARGS=…` override the defaults (`pi@vision-kit.local`, none).
+- `make fetch`: get the Myriad firmware and models (not in git) into `vendor/aiy-binaries.tgz`
+- `make deploy [ARGS="--streaming --no-joy-service --hold-kernel"]`, then `make reboot`: install or update a card (about 10 min; the drivers rebuild every time)
+- `make status`: DKMS, "Myriad ready" (from the journal, not `dmesg`, which pwm-soft floods), `/dev/vision_spicomm`, Joy Detector state and args
+- `make test_hw` / `make test_face` / `make test_camera` / `make test_stream`: device tests. They copy `port/tests/` over, and the first three stop the Joy Detector
+  (it holds the camera and bonnet) and start it again afterwards. `test_face` needs `VIEW2=<jpeg with a face>` if `vendor/baseline/view2.jpg` is missing
+- `make patches`: regenerate `port/*.patch`. `make check_docs`: check this file, the cards and the setup record. `make uninstall`: remove it all from the card
+- Script options: `port/install.sh --help`, `port/fetch-binaries.sh --help`
 
 ## Cards
 
@@ -43,6 +39,7 @@ Run on the Pi as `pi`, after `rsync -a port/tests/ pi@vision-kit.local:vision-ki
 - [picamera-shim-over-rewrite](cards/picamera-shim-over-rewrite.md) — considering rewriting examples for Picamera2 or extending the shim
 - [dkms-over-kernel-hold](cards/dkms-over-kernel-hold.md) — kernel upgrades breaking the drivers, or whether to pin the kernel
 - [docs-licensing](cards/docs-licensing.md) — adding third-party material to docs/ or anything else that gets published
+- [standing-defaults](cards/standing-defaults.md) — before installing any Python dependency, or adding anything that stores data
 
 When you commit a change that adds non-obvious logic, settles an architectural choice,
 or makes a card above wrong, update or add the card in that commit and keep this index
@@ -51,7 +48,8 @@ card links to another.
 
 ## Conventions
 
-- `docs/` holds read-only upstream snapshots. Re-fetch instead of editing. Work goes in `port/`; binaries and logs go in gitignored `vendor/`.
-- Driver code must build on 6.12 **and** 6.18. Regenerate `port/drivers.patch` / `port/python.patch` (diff against `docs/aiyprojects-raspbian/`) when those trees change.
+- Edits under `docs/aiyprojects-raspbian/` and `docs/reference/` are blocked (`.claude/settings.json`): they are upstream snapshots, so re-fetch instead. `docs/README.md` is ours and editable.
+- `port/*.patch` regenerate automatically after edits to `port/drivers/` or `port/python/src/` (hook `.claude/hooks/regen-patches.sh`); after shell-based edits, run `make patches`.
+- Work goes in `port/`; binaries and logs go in gitignored `vendor/`. Driver code must build on 6.12 **and** 6.18.
 - Never `apt upgrade` the reference card running Google's original image.
 - Diagrams: mermaid, not ASCII.

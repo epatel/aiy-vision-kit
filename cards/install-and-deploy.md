@@ -4,6 +4,9 @@ The scripts in `port/` that turn a freshly flashed card into a working Vision Ki
 
 ## The scripts
 
+The Makefile wraps them: `make fetch`, `make deploy [HOST=… ARGS=…]`, `make reboot`, `make uninstall`, `make status`.
+
+
 | Script | Runs on | Does |
 |---|---|---|
 | `fetch-binaries.sh` | the Mac/Linux box | Downloads `aiyprojects-2021-04-02.img.xz` (1.2 GB, cached in `vendor/cache/`, resumable), checks the published SHA-256, carves out the root partition with Python, copies `/lib/firmware/myriad_fw.mvcmd` and `/opt/aiy/models/` out with `debugfs` (local, or in a `debian:bookworm-slim` container), checks the firmware SHA-256 and that there are 15 model files, writes `vendor/aiy-binaries.tgz`. Needs about 6 GB free while running. |
