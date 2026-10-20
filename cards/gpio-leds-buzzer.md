@@ -36,7 +36,7 @@ The arcade button, RGB/privacy LEDs, buzzer and expansion pins (PIN_A..D, LED_1/
 ## Checking
 
 - `/opt/aiy/venv/bin/python port/tests/hardware_check.py` (copied to the Pi) checks: RGB red/green/blue and privacy LED (KTD brightness readback), LEDs off,
-  the buzzer (a pwm-soft export appears in dmesg), PIN_A output (MCU register 0x21), LED_1, and PIN_A PWM at 25 % / 1 kHz (sysfs period/duty).
+  the buzzer (a pwm-soft export appears in the kernel journal; `dmesg` is unreliable because pwm-soft's per-tone messages wrap its ring buffer), PIN_A output (MCU register 0x21), LED_1, and PIN_A PWM at 25 % / 1 kHz (sysfs period/duty).
   `--button SECONDS` also waits for a press. Run it as `pi`; sudo drops `PYTHONPATH`, and the venv makes it unnecessary.
 - `port/tests/button_wait.py` blinks the LED and logs N presses. Run it in the background while someone presses the button.
 - The ADC reads supply rails: `cat /sys/bus/iio/devices/iio:device0/in_voltage4_v3p3_input` gives about 3300 (mV).

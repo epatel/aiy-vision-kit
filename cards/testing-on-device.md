@@ -41,5 +41,5 @@ The rest of the table needs a manual run.
 - **Long jobs** (DKMS builds, deploys) take over the 2-minute tool timeout: run them in the background with output to a log, and check the real exit code instead of piping through `tail`.
 - **mDNS adds latency** to `.local` names (around 0.3 s per connect from the Mac). Use the IP for timing measurements (`hostname -I` on the Pi).
 - **Hangs:** run Python tests with `timeout -s ABRT 120 python -X faulthandler …`. On timeout, every thread's stack is printed.
-- `vendor/baseline/system.txt` contains NUL bytes; use `grep -a`. The rtk wrapper hides grep's "Binary file matches"; `rtk proxy grep` shows it.
+- `vendor/baseline/system.txt` contains NUL bytes, so grep treats it as binary and prints no matching lines; use `grep -a`.
 - Quiet libcamera with `LIBCAMERA_LOG_LEVELS=*:WARN`. Auto-exposure needs a few seconds in a dark room: a still taken 1.5 s after the camera starts came out black (`raspistill -t 1500` on Buster), and 5 s was fine.
