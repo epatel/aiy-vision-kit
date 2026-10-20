@@ -32,7 +32,12 @@ The Makefile wraps them: `make fetch`, `make deploy [HOST=… ARGS=…]`, `make 
 
 ## Card prerequisites
 
-- Raspberry Pi OS **Lite 32-bit**, Bookworm or Trixie. Set hostname, user, Wi-Fi and SSH key in Imager.
+- Raspberry Pi OS **Lite 32-bit**, Bookworm or Trixie. Set hostname, user, Wi-Fi (2.4 GHz only on a Zero W; the Localisation tab sets the
+  regulatory country) and Enable SSH + public key (Remote Access tab) in Imager.
+- Also `touch /Volumes/bootfs/ssh` before the first boot. That's the standard switch on every Pi model, not Zero-specific; `sshswitch` removes the file after enabling.
+  Imager's SSH setting is applied by cloud-init's last stage on Trixie (user-data `runcmd: systemctl enable --now ssh`), which comes minutes into a Pi Zero's first boot,
+  and one Trixie card didn't answer SSH until the file was added. `wpa_supplicant.conf` in the boot partition does nothing since Bookworm (NetworkManager).
+- A newly flashed card with a reused hostname has a new host key: `ssh-keygen -R vision-kit.local`.
 - **Passwordless sudo** for `deploy.sh` (it runs `sudo` over a non-interactive ssh). Bookworm Imager images give the first user that; **Trixie doesn't**. Run once:
   `ssh -t pi@HOST 'echo "pi ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/010_pi-nopasswd && sudo chmod 0440 /etc/sudoers.d/010_pi-nopasswd'`.
 - `vendor/aiy-binaries.tgz` on the Mac (`port/fetch-binaries.sh`).

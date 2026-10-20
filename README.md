@@ -14,7 +14,8 @@ udev, venv, Joy Detector service), and every test passes on the installed system
 
 **Repository:** <https://github.com/epatel/aiy-vision-kit>
 
-**To install:** see [`port/README.md`](port/README.md). In short:
+**To install:** see [`port/README.md`](port/README.md). First [prepare the SD card](port/README.md#prepare-the-sd-card)
+(Raspberry Pi OS Lite 32-bit with Wi-Fi and SSH set up in Imager, plus an empty `ssh` file in the boot partition). Then:
 
 ```bash
 git clone https://github.com/epatel/aiy-vision-kit.git && cd aiy-vision-kit

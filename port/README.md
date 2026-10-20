@@ -18,16 +18,60 @@ Myriad drivers (DKMS), camera inference through picamera2, LEDs/button/buzzer, a
   You can also take the files from a card running the official image:
   `ssh pi@raspberrypi.local 'dpkg -L aiy-vision-firmware aiy-models | while read f; do [ -f "$f" ] && echo "$f"; done | tar czf - -T -' > vendor/aiy-binaries.tgz`.
 
+## Prepare the SD card
+
+The Pi Zero W runs headless here, with no screen or keyboard: everything happens over Wi-Fi and SSH, so set those up when you flash the card.
+
+1. **Flash with [Raspberry Pi Imager](https://www.raspberrypi.com/software/)** (a current version: it writes the first-boot configuration the image reads).
+   Choose the device *Raspberry Pi Zero*, then **Raspberry Pi OS Lite (32-bit)**. Trixie is the current release. Bookworm also works, and Imager lists it
+   among the older releases. Don't pick a 64-bit or desktop image: the Pi Zero W's ARMv6 CPU can't run 64-bit, and the desktop is too heavy for 512 MB.
+2. **Fill in Imager's customisation tabs:**
+   - *Hostname:* for example `vision-kit` (the Makefile defaults to `pi@vision-kit.local`).
+   - *Localisation:* your capital city and time zone. This also sets the Wi-Fi regulatory country, which Wi-Fi needs.
+   - *User:* `pi` and a password.
+   - *Wi-Fi:* SSID and password. **The Pi Zero W only has 2.4 GHz Wi-Fi**, so a 5 GHz-only network won't work.
+   - *Remote Access:* turn on **Enable SSH** and choose **public key authentication**. Paste your public key (for example `~/.ssh/id_ed25519.pub`).
+     This is a separate tab and easy to miss.
+3. **Add an empty `ssh` file to the boot partition** before the first boot. After writing, Imager ejects the card, so put it back in. On a Mac its boot partition
+   mounts as `bootfs`:
+
+   ```bash
+   touch /Volumes/bootfs/ssh
+   diskutil eject /Volumes/bootfs
+   ```
+
+   This is the standard Raspberry Pi OS switch for SSH on **every** model, not a Pi Zero W quirk. With the file present, SSH is enabled at boot,
+   and the file is then removed. Imager's own "Enable SSH" is applied later by the first-boot tooling (cloud-init on Trixie,
+   which runs `systemctl enable --now ssh` in its last stage). On a single-core Pi Zero that last stage comes minutes into the first boot.
+   One Trixie card here didn't answer SSH until the file was added. The file makes SSH come up early and doesn't depend on that tooling, and it's harmless alongside the Imager setting.
+4. **First boot.** Insert the card and power the Pi from the **PWR IN** port. The first boot of a Pi Zero takes several minutes: it expands the file system,
+   generates keys and runs the first-boot configuration. Then:
+
+   ```bash
+   ssh pi@vision-kit.local
+   ```
+
+   - *"REMOTE HOST IDENTIFICATION HAS CHANGED"*: each newly flashed card gets a new host key, so a second card with the same hostname triggers this.
+     Run `ssh-keygen -R vision-kit.local`, then connect again.
+   - *No answer:* wait a few more minutes, check that the Wi-Fi network is 2.4 GHz, or find the Pi's IP address in your router.
+     Leaving a `wpa_supplicant.conf` in the boot partition no longer sets up Wi-Fi: Bookworm and later use NetworkManager, so use Imager's Wi-Fi tab.
+5. **Passwordless sudo**, which `deploy.sh` needs because it runs `sudo` over a non-interactive ssh. Bookworm images from Imager give the first user this. **Trixie images don't**,
+   so run this once; it asks for the password:
+
+   ```bash
+   ssh -t pi@vision-kit.local 'echo "pi ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/010_pi-nopasswd && sudo chmod 0440 /etc/sudoers.d/010_pi-nopasswd && sudo visudo -c'
+   ```
+
+   Check it with `ssh pi@vision-kit.local sudo -n true && echo ok`.
+
 ## Install
 
-1. In Raspberry Pi Imager, flash **Raspberry Pi OS Lite (32-bit)**, Bookworm or Trixie. In its settings, set a hostname, a user, Wi-Fi, and SSH with your public key.
-   `deploy.sh` needs passwordless sudo. Bookworm gives the first user that by default; on Trixie run once:
-   `ssh -t pi@vision-kit.local 'echo "pi ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/010_pi-nopasswd && sudo chmod 0440 /etc/sudoers.d/010_pi-nopasswd'`
+1. Prepare the card as above (reachable over SSH, passwordless sudo).
 2. From this repo on your computer:
 
    ```bash
-   port/deploy.sh pi@vision-kit.local      # copies port/ + vendor/aiy-binaries.tgz, then runs install.sh
-   ssh pi@vision-kit.local sudo reboot
+   port/deploy.sh pi@vision-kit.local      # or: make deploy   (copies port/ + vendor/aiy-binaries.tgz, then runs install.sh)
+   ssh pi@vision-kit.local sudo reboot     # or: make reboot
    ```
 
    Or run it on the Pi yourself: `sudo ./install.sh --binaries aiy-binaries.tgz` from a copy of `port/`.
