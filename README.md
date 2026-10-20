@@ -47,3 +47,14 @@ flowchart TD
 | [`CLAUDE.md`](CLAUDE.md) | Notes for Claude Code working in this repo. |
 | `vendor/` | Binaries saved from the reference card (`aiy-binaries.tgz`: firmware and models) plus `baseline/` logs and photos. Kept out of git. |
 | `port/` | `DEPENDENCIES.md` (porting inventory and status), `drivers/` (patched for 6.12 and 6.18), `drivers.patch`, `python.patch`, `install.sh`. |
+
+## Licensing
+
+This repo has no license of its own; each part keeps the license of the code it was derived from:
+
+- `port/drivers/` — derived from Google's AIY kernel drivers: **GPL-2.0** (see each file's header).
+- `port/python/` — derived from Google's `aiyprojects-raspbian` Python library: **Apache-2.0** (`docs/aiyprojects-raspbian/LICENSE`).
+- `docs/` — unmodified snapshots under their upstream licenses: AIY repo (Apache-2.0 / GPL-2.0), Raspberry Pi documentation
+  (CC BY-SA 4.0, `docs/reference/rpi-documentation/LICENSE.md`), picamera2 (BSD-2-Clause), Linux kernel docs (GPL-2.0).
+- Not included: the Myriad firmware and models (fetched by `port/fetch-binaries.sh` from Google's release image), and pages whose
+  license is unclear (linked from `docs/README.md`).

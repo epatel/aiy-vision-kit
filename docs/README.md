@@ -30,17 +30,18 @@ vendored files. Re-fetch rather than patch.
 
 ## Fetched pages (`reference/`)
 
-HTML converted to Markdown with pandoc; each file has a `source:` header.
+HTML converted to Markdown with pandoc; each file has a `source:` header. Pages whose license is unclear (blog posts, Google's
+kit site, the Picamera2 manual) are **links only** and aren't committed. Local copies can live in the gitignored `docs/local-only/`.
 
 **AIY**
-- [aiy-vision-kit-v1.md](reference/aiy-vision-kit-v1.md) — the kit's assembly and usage guide
-- [aiy-models.md](reference/aiy-models.md) — the models that ship for the kit
+- [Vision Kit guide](https://aiyprojects.withgoogle.com/vision-v1/) — the kit's assembly and usage guide (link only)
+- [Models](https://aiyprojects.withgoogle.com/models/) — the models that ship for the kit (link only)
 - [aiy-readthedocs-vision.md](reference/aiy-readthedocs-vision.md), [aiy-readthedocs-inference.md](reference/aiy-readthedocs-inference.md) — Python API
 
 **Raspberry Pi OS**
-- [rpi-news-bullseye-camera.md](reference/rpi-news-bullseye-camera.md) — why the legacy camera stack and `picamera` went away
-- [rpi-news-bookworm.md](reference/rpi-news-bookworm.md), [rpi-news-trixie.md](reference/rpi-news-trixie.md) — release notes
-- [picamera2-manual.pdf](reference/picamera2-manual.pdf) — Picamera2 manual (86 pages)
+- [Bullseye camera post](https://www.raspberrypi.com/news/bullseye-camera-system/) — why the legacy camera stack and `picamera` went away (link only)
+- [Bookworm](https://www.raspberrypi.com/news/bookworm-the-new-version-of-raspberry-pi-os/) and [Trixie](https://www.raspberrypi.com/news/trixie-the-new-version-of-raspberry-pi-os/) release notes (link only)
+- [Picamera2 manual](https://datasheets.raspberrypi.com/camera/picamera2-manual.pdf) — PDF, 86 pages (link only)
 - [rpi-dt-overlays-README.txt](reference/rpi-dt-overlays-README.txt) — all overlays and their params (`spi0-1cs`, etc.), kernel branch rpi-6.12.y
 - `rpi-documentation/documentation/asciidoc/computers/`:
   [os](reference/rpi-documentation/documentation/asciidoc/computers/os/),

@@ -1,6 +1,9 @@
 # Binaries from the official AIY image (firmware, models): license unclear, keep local.
 vendor/
 
+# Local copies of reference pages whose license is unclear (linked from docs/README.md instead).
+docs/local-only/
+
 # Build and editor artifacts
 __pycache__/
 *.egg-info/
