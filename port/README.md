@@ -62,3 +62,17 @@ See [`DEPENDENCIES.md`](DEPENDENCIES.md) for everything that changed from Google
 
 DKMS rebuilds the modules when `apt upgrade` installs a new kernel. If a future kernel changes an API the drivers use, the build fails
 and the bonnet stops working after the reboot. `--hold-kernel` avoids that by pinning the kernel. Check `dkms status` after upgrades.
+
+## Known gaps
+
+Not verified yet, on either OS unless noted:
+
+- **Joy Detector photo on a button press.** The button itself works, and the photo code was fixed for Pillow 10+ (`getbbox()`), but the full press-to-photo path hasn't been run.
+- **Streaming server** (`install.sh --streaming`, the AIY app's live view): not run.
+- **Camera preview and `Annotator` overlays on HDMI.** The DRM preview only starts when a display is connected; untested without one.
+- **Bookworm after the Trixie fixes.** The `pins.py` and Joy Detector changes run on both OSes but were only tested on Trixie. The kernel-version
+  checks in the drivers keep the 6.12 code path unchanged.
+- **Live inference speed** is about 8–11 fps, against 10–15 fps on Google's Buster image. This may be the ISP producing RGB frames that nothing uses;
+  not measured carefully.
+- **Re-running `install.sh` always rebuilds the drivers** (about 10 minutes on a Pi Zero), even when nothing changed.
+- **Voice Kit** code in `aiy/` (assistant, cloudspeech, voice) isn't ported or tested.

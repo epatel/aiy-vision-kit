@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Port of the Google AIY Vision Kit v1 software stack to current Raspberry Pi OS (Bookworm first,
-then Trixie). See `README.md` for the plan and `TODO.html` for the checklist.
+then Trixie). See `README.md` for the overview, `port/README.md` for installing (and its Known gaps), and `port/DEPENDENCIES.md` for what changed and why.
 
 ## Hardware
 - Raspberry Pi Zero W: ARMv6, 512 MB RAM. Needs the **32-bit (armhf) Lite** image. No 64-bit, no desktop.

@@ -22,7 +22,7 @@ port/fetch-binaries.sh             # Myriad firmware + models from Google's rele
 port/deploy.sh pi@<host>           # then reboot the Pi
 ```
 
-What changed from Google's stack and why: [`port/DEPENDENCIES.md`](port/DEPENDENCIES.md). Progress checklist: [`TODO.html`](TODO.html); open it in a browser, and your progress is saved locally.
+What changed from Google's stack and why: [`port/DEPENDENCIES.md`](port/DEPENDENCIES.md). What still isn't verified: [Known gaps](port/README.md#known-gaps).
 
 ## Why it isn't just `apt upgrade`
 
@@ -53,7 +53,6 @@ flowchart TD
 | Path | Contents |
 |---|---|
 | [`docs/`](docs/README.md) | Reference snapshots: AIY repo, Raspberry Pi docs, picamera2, kernel docs. Read-only. |
-| [`TODO.html`](TODO.html) | Interactive checklist with links. |
 | [`CLAUDE.md`](CLAUDE.md) | Notes for Claude Code working in this repo. |
 | `vendor/` | Binaries saved from the reference card (`aiy-binaries.tgz`: firmware and models) plus `baseline/` logs and photos. Kept out of git. |
 | `port/` | `DEPENDENCIES.md` (porting inventory and status), `drivers/` (patched for 6.12 and 6.18), `drivers.patch`, `python.patch`, `install.sh`. |

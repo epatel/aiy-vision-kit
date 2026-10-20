@@ -99,7 +99,7 @@ That also covers the fresh-card test: `install.sh`'s package list is complete.
 - Trixie's Imager image doesn't give `pi` passwordless sudo. `deploy.sh` needs it (see `port/README.md`).
 
 **Still open**
-- ~~**Fresh-flash test (p6-3):**~~ Done on Trixie (above). Not repeated on Bookworm: a newly flashed card with only `deploy.sh` run on it. This checks the apt package list catches everything development installed by hand.
+- **Fresh-flash test:** done on Trixie (above). Not repeated on Bookworm: a newly flashed card with only `deploy.sh` run on it. This checks the apt package list catches everything development installed by hand.
 - Joy demo photo on button press, the `joy_detection_demo` systemd service, and the streaming server (`--enable_streaming`) haven't been tried.
 
 ## Summary
