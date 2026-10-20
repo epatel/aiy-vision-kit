@@ -27,6 +27,8 @@ then Trixie). See `README.md` for the plan and `TODO.html` for the checklist.
 - The reference card runs the official 2021-04-02 image: kernel 5.10.17+, Python 3.7.3, picamera 1.13, protobuf 3.14.0, gpiozero 1.5.1.
   The board is a Pi Zero W Rev 1.1 (`9000c1`). Don't `apt upgrade` this card.
 - Reach it with `ssh pi@raspberrypi.local` (key auth works non-interactively) over USB gadget networking (`192.168.11.2`).
+- `vendor/` is gitignored. Recreate `vendor/aiy-binaries.tgz` with `port/fetch-binaries.sh`, which downloads the official image from GitHub releases,
+  verifies its SHA-256, and copies the files out with debugfs (local, or in Docker). `vendor/baseline/` (logs and photos) can't be recreated, but nothing needs it.
 - `vendor/aiy-binaries.tgz` holds `lib/firmware/myriad_fw.mvcmd`, 9 models in `opt/aiy/models/*.binaryproto`,
   and the DKMS sources as installed. `vendor/baseline/` holds `system.txt`, `kernel-boot.log` and `hw-sw.txt`.
 - `face_detection_camera.py --num_frames 150` runs cleanly at about 10–15 fps. That's the benchmark for the picamera2 port.

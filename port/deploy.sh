@@ -12,7 +12,7 @@ HOST="${1:?usage: $0 user@host [install.sh options]}"
 shift
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BINARIES="${AIY_BINARIES:-$ROOT/vendor/aiy-binaries.tgz}"
-[[ -f "$BINARIES" ]] || { echo "missing $BINARIES" >&2; exit 1; }
+[[ -f "$BINARIES" ]] || { echo "missing $BINARIES (create it with port/fetch-binaries.sh)" >&2; exit 1; }
 
 rsync -a --delete \
   --exclude __pycache__ --exclude '*.egg-info' --exclude '*.o' --exclude '*.ko' \

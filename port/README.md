@@ -6,15 +6,17 @@ Myriad drivers (DKMS), camera inference through picamera2, LEDs/button/buzzer, a
 ## What you need
 
 - Pi Zero W with the Vision Bonnet and Pi Camera v2, assembled as in Google's guide.
-- **`aiy-binaries.tgz`**: the Myriad firmware and models, which can't be downloaded any more. Make it from an SD card running Google's
-  official AIY image (`aiyprojects-2021-04-02.img.xz` from the
-  [GitHub releases](https://github.com/google/aiyprojects-raspbian/releases)):
+- **`vendor/aiy-binaries.tgz`**: the Myriad firmware and the models. They aren't in this repo, and Google's apt repo that shipped them is gone.
+  The only public source left is Google's official system image on the
+  [GitHub releases page](https://github.com/google/aiyprojects-raspbian/releases/tag/v20210402). This script downloads it and pulls the files out:
 
   ```bash
-  ssh pi@raspberrypi.local 'dpkg -L aiy-vision-firmware aiy-models | while read f; do [ -f "$f" ] && echo "$f"; done | tar czf - -T -' > vendor/aiy-binaries.tgz
+  port/fetch-binaries.sh        # 1.2 GB download (cached in vendor/cache/), needs debugfs or Docker
   ```
 
-  `install.sh` checks the firmware's SHA-256.
+  It checks the image's published SHA-256 and the firmware's SHA-256, and needs no root and no mounting.
+  You can also take the files from a card running the official image:
+  `ssh pi@raspberrypi.local 'dpkg -L aiy-vision-firmware aiy-models | while read f; do [ -f "$f" ] && echo "$f"; done | tar czf - -T -' > vendor/aiy-binaries.tgz`.
 
 ## Install
 

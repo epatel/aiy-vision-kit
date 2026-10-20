@@ -41,7 +41,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ $EUID -eq 0 ]] || die "run with sudo"
-[[ -n "$BINARIES" && -f "$BINARIES" ]] || die "--binaries FILE is required (see port/README or CLAUDE.md)"
+[[ -n "$BINARIES" && -f "$BINARIES" ]] || die "--binaries FILE is required (create it with port/fetch-binaries.sh on your computer)"
 id "$TARGET_USER" >/dev/null 2>&1 || die "user $TARGET_USER does not exist"
 [[ -f "$SRC_DIR/drivers/dkms.conf" && -d "$SRC_DIR/python/src/aiy" ]] || die "run from the port/ directory"
 

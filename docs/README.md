@@ -64,4 +64,5 @@ HTML converted to Markdown with pandoc; each file has a `source:` header.
   `packages.cloud.google.com/apt … aiyprojects-stable` returns **404** (checked 2026-10-20). The only remaining
   copy is inside the system images on the
   [GitHub releases page](https://github.com/google/aiyprojects-raspbian/releases) (latest
-  `aiyprojects-2021-04-02.img.xz`, 1.1 GB), or on your current SD card. They're binaries, so extract them to `../vendor/`, not here.
+  `aiyprojects-2021-04-02.img.xz`, 1.1 GB), or on your current SD card. `port/fetch-binaries.sh` downloads the image and builds
+  `vendor/aiy-binaries.tgz` from it. They're binaries, so they go in `../vendor/`, not here.
