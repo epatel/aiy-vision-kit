@@ -1,0 +1,14 @@
+# Binaries from the official AIY image (firmware, models): license unclear, keep local.
+vendor/
+
+# Build and editor artifacts
+__pycache__/
+*.egg-info/
+*.o
+*.ko
+*.mod
+*.mod.c
+.*.cmd
+Module.symvers
+modules.order
+.DS_Store

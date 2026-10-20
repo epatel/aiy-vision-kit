@@ -1,0 +1,724 @@
+diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/gpio/Makefile port/drivers/aiy/aiy/gpio/Makefile
+--- docs/aiyprojects-raspbian/drivers/aiy/aiy/gpio/Makefile	2026-10-20 17:54:28
++++ port/drivers/aiy/aiy/gpio/Makefile	2026-10-20 19:07:50
+@@ -3,8 +3,8 @@
+ KVERSION := $(shell uname -r)
+ 
+ all:
+-	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(PWD) modules
++	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) modules
+ 
+ clean:
+-	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(PWD) clean
++	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) clean
+ 
+diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/gpio/gpio-aiy-io.c port/drivers/aiy/aiy/gpio/gpio-aiy-io.c
+--- docs/aiyprojects-raspbian/drivers/aiy/aiy/gpio/gpio-aiy-io.c	2026-10-20 17:54:28
++++ port/drivers/aiy/aiy/gpio/gpio-aiy-io.c	2026-10-20 19:12:48
+@@ -19,6 +19,7 @@
+ #include <linux/device.h>
+ #include <linux/err.h>
+ #include <linux/gpio.h>
++#include <linux/gpio/driver.h>
+ #include <linux/i2c.h>
+ #include <linux/module.h>
+ #include <linux/platform_device.h>
+@@ -182,10 +183,9 @@
+ 	return 0;
+ }
+ 
+-static int aiy_gpio_remove(struct platform_device *pdev)
++static void aiy_gpio_remove(struct platform_device *pdev)
+ {
+ 	dev_info(&pdev->dev, "Driver removed\n");
+-	return 0;
+ }
+ 
+ static const struct of_device_id aiy_gpio_of_match[] = {
+diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/iio/adc/Makefile port/drivers/aiy/aiy/iio/adc/Makefile
+--- docs/aiyprojects-raspbian/drivers/aiy/aiy/iio/adc/Makefile	2026-10-20 17:54:28
++++ port/drivers/aiy/aiy/iio/adc/Makefile	2026-10-20 19:07:50
+@@ -3,8 +3,8 @@
+ KVERSION := $(shell uname -r)
+ 
+ all:
+-	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(PWD) modules
++	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) modules
+ 
+ clean:
+-	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(PWD) clean
++	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) clean
+ 
+diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/iio/adc/aiy-adc.c port/drivers/aiy/aiy/iio/adc/aiy-adc.c
+--- docs/aiyprojects-raspbian/drivers/aiy/aiy/iio/adc/aiy-adc.c	2026-10-20 17:54:28
++++ port/drivers/aiy/aiy/iio/adc/aiy-adc.c	2026-10-20 19:56:11
+@@ -147,9 +147,11 @@
+ 		.extend_name = (_name)                                         \
+ 	}
+ 
++/* One spec per channel: separate RAW and PROCESSED specs with the same
++ * extend_name create duplicate *_label attributes on newer kernels (-EBUSY). */
+ #define AIY_ADC_CHANNEL_BOTH(_ch, _address, _name)                             \
+-	AIY_ADC_CHANNEL(_ch, _address, BIT(IIO_CHAN_INFO_RAW), _name),         \
+-	AIY_ADC_CHANNEL(_ch, _address, BIT(IIO_CHAN_INFO_PROCESSED), _name)
++	AIY_ADC_CHANNEL(_ch, _address,                                         \
++			BIT(IIO_CHAN_INFO_RAW) | BIT(IIO_CHAN_INFO_PROCESSED), _name)
+ 
+ static const struct iio_chan_spec aiy_adc_channels[] = {
+ 	/* Both Vision and Voice */
+@@ -179,7 +181,6 @@
+ 	}
+ 
+ 	iio_dev->name = dev_name(dev);
+-	iio_dev->driver_module = THIS_MODULE;
+ 	iio_dev->dev.parent = dev;
+ 	iio_dev->dev.of_node = dev->of_node;
+ 	iio_dev->info = &aiy_adc_info;
+@@ -210,12 +211,11 @@
+ 	return 0;
+ }
+ 
+-static int aiy_adc_remove(struct platform_device *pdev)
++static void aiy_adc_remove(struct platform_device *pdev)
+ {
+ 	struct iio_dev *iio_dev = platform_get_drvdata(pdev);
+ 	iio_device_unregister(iio_dev);
+ 	dev_info(&pdev->dev, "Driver removed");
+-	return 0;
+ }
+ 
+ static const struct of_device_id aiy_adc_of_match[] = {
+diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/mfd/Makefile port/drivers/aiy/aiy/mfd/Makefile
+--- docs/aiyprojects-raspbian/drivers/aiy/aiy/mfd/Makefile	2026-10-20 17:54:28
++++ port/drivers/aiy/aiy/mfd/Makefile	2026-10-20 19:07:50
+@@ -3,8 +3,8 @@
+ KVERSION := $(shell uname -r)
+ 
+ all:
+-	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(PWD) modules
++	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) modules
+ 
+ clean:
+-	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(PWD) clean
++	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) clean
+ 
+diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/mfd/aiy-io-i2c.c port/drivers/aiy/aiy/mfd/aiy-io-i2c.c
+--- docs/aiyprojects-raspbian/drivers/aiy/aiy/mfd/aiy-io-i2c.c	2026-10-20 17:54:28
++++ port/drivers/aiy/aiy/mfd/aiy-io-i2c.c	2026-10-20 19:09:54
+@@ -322,8 +322,7 @@
+ 	.can_multi_write = true,
+ };
+ 
+-static int aiy_io_i2c_probe(struct i2c_client *i2c,
+-			    const struct i2c_device_id *id)
++static int aiy_io_i2c_probe(struct i2c_client *i2c)
+ {
+ 	int err;
+ 	struct device *dev = &i2c->dev;
+@@ -378,7 +377,7 @@
+ 	return 0;
+ }
+ 
+-static int aiy_io_i2c_remove(struct i2c_client *i2c)
++static void aiy_io_i2c_remove(struct i2c_client *i2c)
+ {
+ 	struct device *dev = &i2c->dev;
+ 	int err = aiy_io_reset(i2c);
+@@ -389,7 +388,6 @@
+ 	sysfs_remove_group(&dev->kobj, &aiy_io_attr_group);
+ 
+ 	dev_info(dev, "Driver removed\n");
+-	return 0;
+ }
+ 
+ static const struct of_device_id aiy_io_i2c_of_match[] = {
+diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/pwm/Makefile port/drivers/aiy/aiy/pwm/Makefile
+--- docs/aiyprojects-raspbian/drivers/aiy/aiy/pwm/Makefile	2026-10-20 17:54:28
++++ port/drivers/aiy/aiy/pwm/Makefile	2026-10-20 19:07:50
+@@ -3,8 +3,8 @@
+ KVERSION := $(shell uname -r)
+ 
+ all:
+-	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(PWD) modules
++	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) modules
+ 
+ clean:
+-	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(PWD) clean
++	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) clean
+ 
+diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/pwm/pwm-aiy-io.c port/drivers/aiy/aiy/pwm/pwm-aiy-io.c
+--- docs/aiyprojects-raspbian/drivers/aiy/aiy/pwm/pwm-aiy-io.c	2026-10-20 17:54:28
++++ port/drivers/aiy/aiy/pwm/pwm-aiy-io.c	2026-10-20 19:55:30
+@@ -18,13 +18,14 @@
+ #include <linux/err.h>
+ #include <linux/i2c.h>
+ #include <linux/module.h>
++#include <linux/of.h>
+ #include <linux/platform_device.h>
+ #include <linux/pwm.h>
+ 
+ #define AIY_PWM_PIN_COUNT 4
+ 
++/* Private data of the pwm_chip allocated with devm_pwmchip_alloc(). */
+ struct aiy_pwm {
+-	struct pwm_chip chip;
+ 	struct aiy_io_i2c *aiy;
+ };
+ 
+@@ -55,7 +56,7 @@
+ };
+ 
+ static inline struct aiy_io_i2c *to_aiy(struct pwm_chip *pwm_chip) {
+-	struct aiy_pwm *aiy_pwm = container_of(pwm_chip, struct aiy_pwm, chip);
++	struct aiy_pwm *aiy_pwm = pwmchip_get_drvdata(pwm_chip);
+ 	return aiy_pwm->aiy;
+ }
+ 
+@@ -77,7 +78,7 @@
+ 	do_div(period_cycles, AIY_PWM_NANO_SEC);
+ 	duty_cycles *= AIY_PWM_8BIT_TIMER_CLK_FREQ;
+ 	do_div(duty_cycles, AIY_PWM_NANO_SEC);
+-	dev_dbg(chip->dev, "Period cycles %llu, duty cycles %llu\n",
++	dev_dbg(pwmchip_parent(chip), "Period cycles %llu, duty cycles %llu\n",
+ 		period_cycles, duty_cycles);
+ 
+ 	/* Calculate the prescaler then the duty cycle and period in cycles */
+@@ -86,7 +87,7 @@
+ 	for (i = 0; i < prescaler_count; i++) {
+ 		int prescaler = prescalers[i];
+ 		if (prescaler == 0) {
+-			dev_err(chip->dev,
++			dev_err(pwmchip_parent(chip),
+ 				"Prescaler exceeds the maximum value\n");
+ 			return -EINVAL;
+ 		}
+@@ -96,14 +97,14 @@
+ 		if (scaled_period_cycles < AIY_PWM_MAX_CAP) {
+ 			*prescaler_index = i;
+ 			if (scaled_period_cycles == 0) {
+-				dev_warn(chip->dev,
++				dev_warn(pwmchip_parent(chip),
+ 					 "Selected PWM Period too small.\n");
+ 				return -EINVAL;
+ 			}
+ 			*period_cyc = (uint16_t)scaled_period_cycles - 1;
+ 			do_div(scaled_duty_cycles, prescaler);
+ 			*duty_cyc = (uint16_t)scaled_duty_cycles;
+-			dev_dbg(chip->dev,
++			dev_dbg(pwmchip_parent(chip),
+ 				"Prescaler selected %d, period selected %llu, "
+ 				"duty cycle "
+ 				"selected %llu\n",
+@@ -131,7 +132,7 @@
+ 	} else {
+ 		*duty_cyc = duty_cycles;
+ 	}
+-	dev_dbg(chip->dev, "Duty cycles %d\n", *duty_cyc);
++	dev_dbg(pwmchip_parent(chip), "Duty cycles %d\n", *duty_cyc);
+ 	return 0;
+ }
+ 
+@@ -141,11 +142,11 @@
+ 	const int offset = pwm_map[pwm->hwpwm];
+ 	struct aiy_io_i2c *aiy = to_aiy(chip);
+ 
+-	dev_dbg(chip->dev, "PWM request for pin %d (offset=%d)\n", pwm->hwpwm,
++	dev_dbg(pwmchip_parent(chip), "PWM request for pin %d (offset=%d)\n", pwm->hwpwm,
+ 		offset);
+ 	err = aiy_io_request_pin(aiy, offset, AIY_PIN_OPTION_USED_PWM);
+ 	if (err < 0) {
+-		dev_err(chip->dev,
++		dev_err(pwmchip_parent(chip),
+ 			"PWM request for pin %d (offset=%d) failed: %d\n",
+ 			pwm->hwpwm, offset, err);
+ 	}
+@@ -157,15 +158,15 @@
+ 	const int offset = pwm_map[pwm->hwpwm];
+ 	struct aiy_io_i2c *aiy = to_aiy(chip);
+ 
+-	dev_dbg(chip->dev, "PWM free pin %d (offset=%d).\n", pwm->hwpwm,
++	dev_dbg(pwmchip_parent(chip), "PWM free pin %d (offset=%d).\n", pwm->hwpwm,
+ 		offset);
+ 
+ 	if (regmap_write(aiy->regmap, AIY_REG_GPIO_BASE_MODE + offset,
+ 			 AIY_GPIO_MODE_INPUT_HIZ) < 0)
+-		dev_err(chip->dev, "Cannot set HIZ mode for pin %d.\n", offset);
++		dev_err(pwmchip_parent(chip), "Cannot set HIZ mode for pin %d.\n", offset);
+ 
+ 	if (aiy_io_free_pin(aiy, offset, AIY_PIN_OPTION_USED_PWM) < 0)
+-		dev_err(chip->dev, "Cannot free PWM pin %d.\n", offset);
++		dev_err(pwmchip_parent(chip), "Cannot free PWM pin %d.\n", offset);
+ }
+ 
+ static int aiy_pwm_write_setting(struct pwm_chip *chip, unsigned int hwpwm,
+@@ -181,7 +182,7 @@
+ 			       base_address + AIY_REG_DUTY_CYCLE_OFFSET,
+ 			       (void *)&duty, sizeof(duty));
+ 	if (err != 0) {
+-		dev_err(chip->dev, "Failed to set PWM duty cycle.");
++		dev_err(pwmchip_parent(chip), "Failed to set PWM duty cycle.");
+ 		return -EINVAL;
+ 	}
+ 
+@@ -189,13 +190,13 @@
+ 				base_address + AIY_REG_PERIOD_OFFSET,
+ 				(void *)&period, sizeof(period));
+ 	if (err != 0) {
+-		dev_err(chip->dev, "Failed to set PWM period.");
++		dev_err(pwmchip_parent(chip), "Failed to set PWM period.");
+ 		return -EINVAL;
+ 	}
+ 
+ 	err = regmap_write(aiy->regmap, prescaler_address, prescaler);
+ 	if (err != 0) {
+-		dev_err(chip->dev, "Failed to set PWM prescaler.");
++		dev_err(pwmchip_parent(chip), "Failed to set PWM prescaler.");
+ 		return -EINVAL;
+ 	}
+ 	return 0;
+@@ -209,21 +210,21 @@
+ 	uint16_t period_value = 0;
+ 	uint16_t duty_value = 0;
+ 
+-	dev_dbg(chip->dev, "PWM config duty: %d, period: %d.\n", duty_ns,
++	dev_dbg(pwmchip_parent(chip), "PWM config duty: %d, period: %d.\n", duty_ns,
+ 		period_ns);
+ 
+ 	err = aiy_calculate_8bit_settings(chip, duty_ns, period_ns,
+ 					  &period_value, &duty_value,
+ 					  &prescaler_value);
+ 	if (err != 0) {
+-		dev_err(chip->dev, "Failed to calculate PWM settings.");
++		dev_err(pwmchip_parent(chip), "Failed to calculate PWM settings.");
+ 		return -EINVAL;
+ 	}
+ 
+ 	err = aiy_pwm_write_setting(chip, pwm->hwpwm, prescaler_value,
+ 				    duty_value, period_value);
+ 	if (err != 0) {
+-		dev_err(chip->dev, "Failed to write PWM setting.");
++		dev_err(pwmchip_parent(chip), "Failed to write PWM setting.");
+ 		return -EINVAL;
+ 	}
+ 
+@@ -238,18 +239,18 @@
+ 	/* In 16-bit mode PWM only supports changing duty cycle */
+ 	/* 16 bit mode is selected when period is set to 20ms */
+ 
+-	dev_dbg(chip->dev, "Servo config duty: %d, period: %d.\n", duty_ns,
++	dev_dbg(pwmchip_parent(chip), "Servo config duty: %d, period: %d.\n", duty_ns,
+ 		period_ns);
+ 
+ 	err = aiy_calculate_16bit_settings(chip, duty_ns, &duty_value);
+ 	if (err != 0) {
+-		dev_err(chip->dev, "Failed to calculate PWM settings.");
++		dev_err(pwmchip_parent(chip), "Failed to calculate PWM settings.");
+ 		return -EINVAL;
+ 	}
+ 
+ 	err = aiy_pwm_write_setting(chip, pwm->hwpwm, 0, duty_value, 0);
+ 	if (err != 0) {
+-		dev_err(chip->dev, "Failed to write PWM setting.");
++		dev_err(pwmchip_parent(chip), "Failed to write PWM setting.");
+ 		return -EINVAL;
+ 	}
+ 
+@@ -264,7 +265,7 @@
+ 	struct aiy_io_i2c *aiy = to_aiy(chip);
+ 	enum aiy_gpio_mode selected_mode = AIY_GPIO_MODE_PWM;
+ 
+-	dev_dbg(chip->dev, "PWM config duty: %d, period: %d.\n", duty_ns,
++	dev_dbg(pwmchip_parent(chip), "PWM config duty: %d, period: %d.\n", duty_ns,
+ 		period_ns);
+ 
+ 	if (pwm->state.enabled) {
+@@ -285,7 +286,7 @@
+ 	}
+ 
+ 	if (err != 0) {
+-		dev_dbg(chip->dev, "Failed to configure PWM\n");
++		dev_dbg(pwmchip_parent(chip), "Failed to configure PWM\n");
+ 		return -EINVAL;
+ 	}
+ 
+@@ -299,7 +300,8 @@
+ 	return err;
+ }
+ 
+-static int aiy_pwm_enable(struct pwm_chip *chip, struct pwm_device *pwm)
++static int aiy_pwm_enable(struct pwm_chip *chip, struct pwm_device *pwm,
++			  u64 period_ns)
+ {
+ 	int err;
+ 	const int pin_offset = pwm_map[pwm->hwpwm];
+@@ -307,17 +309,17 @@
+ 	enum aiy_gpio_mode selected_mode = AIY_GPIO_MODE_PWM;
+ 
+ 	/* Select correct mode if period is 20 msec */
+-	if (pwm->state.period == AIY_50Hz_PERIOD_NS) {
+-		dev_dbg(chip->dev, "SERVO enable.\n");
++	if (period_ns == AIY_50Hz_PERIOD_NS) {
++		dev_dbg(pwmchip_parent(chip), "SERVO enable.\n");
+ 		selected_mode = AIY_GPIO_MODE_SERVO;
+ 	} else {
+-		dev_dbg(chip->dev, "PWM enable.\n");
++		dev_dbg(pwmchip_parent(chip), "PWM enable.\n");
+ 	}
+ 
+ 	err = regmap_write(aiy->regmap, AIY_REG_GPIO_BASE_MODE + pin_offset,
+ 			   selected_mode);
+ 	if (err != 0) {
+-		dev_err(chip->dev, "Failed to enable PWM.");
++		dev_err(pwmchip_parent(chip), "Failed to enable PWM.");
+ 	}
+ 	return err;
+ }
+@@ -328,42 +330,67 @@
+ 	const int pin_offset = pwm_map[pwm->hwpwm];
+ 	struct aiy_io_i2c *aiy = to_aiy(chip);
+ 
+-	dev_dbg(chip->dev, "PWM %d disable.\n", pwm->hwpwm);
++	dev_dbg(pwmchip_parent(chip), "PWM %d disable.\n", pwm->hwpwm);
+ 
+ 	/* Set pin to HIZ when pwm is disabled */
+ 	err = regmap_write(aiy->regmap, AIY_REG_GPIO_BASE_MODE + pin_offset,
+ 			   AIY_GPIO_MODE_INPUT_HIZ);
+ 	if (err != 0) {
+-		dev_err(chip->dev, "Failed to disable PWM %d.", pwm->hwpwm);
++		dev_err(pwmchip_parent(chip), "Failed to disable PWM %d.", pwm->hwpwm);
+ 	}
+ }
+ 
++/* Maps the atomic PWM API onto the legacy config/enable/disable steps.
++ * pwm->state still holds the previous state while apply() runs. */
++static int aiy_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
++			 const struct pwm_state *state)
++{
++	int err;
++
++	if (state->polarity != PWM_POLARITY_NORMAL)
++		return -EINVAL;
++
++	if (!state->enabled) {
++		if (pwm->state.enabled)
++			aiy_pwm_disable(chip, pwm);
++		return 0;
++	}
++
++	if (state->period > INT_MAX || state->duty_cycle > state->period)
++		return -EINVAL;
++
++	err = aiy_pwm_config(chip, pwm, state->duty_cycle, state->period);
++	if (err)
++		return err;
++
++	if (!pwm->state.enabled)
++		return aiy_pwm_enable(chip, pwm, state->period);
++	return 0;
++}
++
+ static const struct pwm_ops aiy_pwm_ops = {
+ 	.request = aiy_pwm_request,
+ 	.free = aiy_pwm_free,
+-	.config = aiy_pwm_config,
+-	.enable = aiy_pwm_enable,
+-	.disable = aiy_pwm_disable,
+-	.owner = THIS_MODULE,
++	.apply = aiy_pwm_apply,
+ };
+ 
+ static int aiy_pwm_probe(struct platform_device *pdev)
+ {
+ 	int err;
+ 	struct aiy_io_i2c *aiy = dev_get_drvdata(pdev->dev.parent);
++	struct pwm_chip *chip;
+ 	struct aiy_pwm *aiy_pwm;
+ 
+-	aiy_pwm = devm_kzalloc(&pdev->dev, sizeof(*aiy_pwm), GFP_KERNEL);
+-	if (!aiy_pwm) {
+-		return -ENOMEM;
++	chip = devm_pwmchip_alloc(&pdev->dev, AIY_PWM_PIN_COUNT, sizeof(*aiy_pwm));
++	if (IS_ERR(chip)) {
++		return PTR_ERR(chip);
+ 	}
++	aiy_pwm = pwmchip_get_drvdata(chip);
+ 	aiy_pwm->aiy = aiy;
+-	aiy_pwm->chip.dev = &pdev->dev;
+-	aiy_pwm->chip.ops = &aiy_pwm_ops;
+-	aiy_pwm->chip.npwm = AIY_PWM_PIN_COUNT;
+-	platform_set_drvdata(pdev, aiy_pwm);
++	chip->ops = &aiy_pwm_ops;
++	platform_set_drvdata(pdev, chip);
+ 
+-	err = pwmchip_add(&aiy_pwm->chip);
++	err = devm_pwmchip_add(&pdev->dev, chip);
+ 	if (err < 0) {
+ 		dev_err(&pdev->dev, "Failed to add pwm chip: %d\n", err);
+ 		return err;
+@@ -372,18 +399,10 @@
+ 	return 0;
+ }
+ 
+-static int aiy_pwm_remove(struct platform_device *pdev)
++static void aiy_pwm_remove(struct platform_device *pdev)
+ {
+-	int err;
+-	struct aiy_pwm *aiy_pwm = platform_get_drvdata(pdev);
+-
+-	err = pwmchip_remove(&aiy_pwm->chip);
+-	if (err < 0) {
+-		dev_err(&pdev->dev, "Failed to remove pwm chip: %d\n", err);
+-		return err;
+-	}
++	/* The chip is unregistered by devm_pwmchip_add(). */
+ 	dev_info(&pdev->dev, "Driver removed\n");
+-	return 0;
+ }
+ 
+ static const struct of_device_id aiy_pwm_of_match[] = {
+diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/leds/Makefile port/drivers/leds/Makefile
+--- docs/aiyprojects-raspbian/drivers/leds/Makefile	2026-10-20 17:54:28
++++ port/drivers/leds/Makefile	2026-10-20 19:07:50
+@@ -2,9 +2,9 @@
+ KVERSION := $(shell uname -r)
+ 
+ all:
+-	        $(MAKE) -C /lib/modules/$(KVERSION)/build M=$(PWD) modules
++	        $(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) modules
+ 
+ clean:
+-	        $(MAKE) -C /lib/modules/$(KVERSION)/build M=$(PWD) clean
++	        $(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) clean
+ 
+ 
+diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/leds/leds-ktd202x.c port/drivers/leds/leds-ktd202x.c
+--- docs/aiyprojects-raspbian/drivers/leds/leds-ktd202x.c	2026-10-20 17:54:28
++++ port/drivers/leds/leds-ktd202x.c	2026-10-20 19:09:53
+@@ -541,9 +541,9 @@
+ 	.attrs = ktd202x_dev_attrs,
+ };
+ 
+-static int ktd202x_probe(struct i2c_client *client,
+-			const struct i2c_device_id *id)
++static int ktd202x_probe(struct i2c_client *client)
+ {
++	const struct i2c_device_id *id = i2c_client_get_device_id(client);
+ 	struct device *dev = &client->dev;
+ 	struct ktd202x_context *ctx = NULL;
+ 	int err;
+@@ -573,14 +573,12 @@
+ 	return 0;
+ }
+ 
+-static int ktd202x_remove(struct i2c_client *client)
++static void ktd202x_remove(struct i2c_client *client)
+ {
+ 	struct ktd202x_context *ctx = i2c_get_clientdata(client);
+ 	ktd202x_reset(ctx);
+ 
+ 	sysfs_remove_group(&client->dev.kobj, &ktd202x_dev_attr_group);
+-
+-	return 0;
+ }
+ 
+ static const struct of_device_id ktd202x_of_match[] = {
+diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/pwm/Makefile port/drivers/pwm/Makefile
+--- docs/aiyprojects-raspbian/drivers/pwm/Makefile	2026-10-20 17:54:28
++++ port/drivers/pwm/Makefile	2026-10-20 19:07:50
+@@ -2,9 +2,9 @@
+ KVERSION := $(shell uname -r)
+ 
+ all:
+-	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(PWD) modules
++	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) modules
+ 
+ clean:
+-	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(PWD) clean
++	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) clean
+ 
+ 
+diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/pwm/pwm-soft.c port/drivers/pwm/pwm-soft.c
+--- docs/aiyprojects-raspbian/drivers/pwm/pwm-soft.c	2026-10-20 17:54:28
++++ port/drivers/pwm/pwm-soft.c	2026-10-20 19:55:03
+@@ -51,6 +51,10 @@
+  * on the system. It's wasteful to preallocate the entire table,
+  * but avoiding race conditions is so much easier this way ;-)
+ */
++#ifndef ARCH_NR_GPIOS
++/* Removed from the kernel in 6.x; global GPIO numbers start at 512 on the Pi. */
++#define ARCH_NR_GPIOS 1024
++#endif
+ static struct pwm_desc pwm_table[ARCH_NR_GPIOS];
+ 
+ /* lock protects against pwm_unexport() being called while
+@@ -59,8 +63,8 @@
+ static DEFINE_MUTEX(sysfs_lock);
+ 
+ /* forward decls */
+-static ssize_t export_store(struct class *class, struct class_attribute *attr, const char *buf, size_t len);
+-static ssize_t unexport_store(struct class *class, struct class_attribute *attr, const char *buf, size_t len);
++static ssize_t export_store(const struct class *class, const struct class_attribute *attr, const char *buf, size_t len);
++static ssize_t unexport_store(const struct class *class, const struct class_attribute *attr, const char *buf, size_t len);
+ int pwm_export(unsigned gpio);
+ int pwm_unexport(unsigned gpio);
+ 
+@@ -172,7 +176,7 @@
+ /* Export a GPIO pin to sysfs, and claim it for PWM usage.
+  * See the equivalent function in drivers/gpio/gpiolib.c
+  */
+-static ssize_t export_store(struct class *class, struct class_attribute *attr, const char *buf, size_t len){
++static ssize_t export_store(const struct class *class, const struct class_attribute *attr, const char *buf, size_t len){
+   struct pwm_desc *desc;
+   long gpio;
+   int  status;
+@@ -182,6 +186,9 @@
+   status = kstrtol(buf, 0, &gpio);
+   if (status < 0) goto done;
+ 
++  status = -EINVAL;
++  if (gpio < 0 || gpio >= ARCH_NR_GPIOS || !gpio_is_valid(gpio)) goto done;
++
+   /* Make sure we don't accidentally do something stupid, like export the same
+    * pin twice.
+    */
+@@ -222,7 +229,7 @@
+ /* Unexport a PWM GPIO pin from sysfs, and unreclaim it.
+  * See the equivalent function in drivers/gpio/gpiolib.c
+  */
+-static ssize_t unexport_store(struct class *class, struct class_attribute *attr, const char *buf, size_t len) {
++static ssize_t unexport_store(const struct class *class, const struct class_attribute *attr, const char *buf, size_t len) {
+   long gpio;
+   int  status;
+ 
+@@ -232,7 +239,7 @@
+   if (status < 0) goto done;
+ 
+   status = -EINVAL;
+-  if (!gpio_is_valid(gpio)) goto done;
++  if (gpio < 0 || gpio >= ARCH_NR_GPIOS || !gpio_is_valid(gpio)) goto done;
+ 
+   if (test_and_clear_bit(FLAG_SOFTPWM, &pwm_table[gpio].flags)) {
+     status = pwm_unexport(gpio);
+@@ -261,7 +268,6 @@
+ 
+ static struct class soft_pwm_class = {
+   .name =        "pwm-soft",
+-  .owner =       THIS_MODULE,
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
+   .class_attrs = soft_pwm_class_attrs,
+ #else
+@@ -355,7 +361,7 @@
+ 
+       if (KTIME_GET_VAL(desc->next_tick) <= KTIME_GET_VAL(now)) {
+         desc->value = 1 - desc->value;
+-        __gpio_set_value(gpio, desc->value);
++        gpio_set_value(gpio, desc->value);
+         desc->counter++;
+ 
+         if (desc->pulses > 0) desc->pulses--;
+@@ -420,7 +426,7 @@
+     desc = &pwm_table[gpio];
+ 
+     if (test_bit(FLAG_SOFTPWM,&desc->flags)) {
+-      __gpio_set_value(gpio,0);
++      gpio_set_value(gpio,0);
+       status = pwm_unexport(gpio);
+       if (status==0) gpio_free(gpio);
+     }
+diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/vision/Makefile port/drivers/vision/Makefile
+--- docs/aiyprojects-raspbian/drivers/vision/Makefile	2026-10-20 17:54:28
++++ port/drivers/vision/Makefile	2026-10-20 19:07:50
+@@ -3,7 +3,7 @@
+ KVERSION := $(shell uname -r)
+ 
+ all:
+-	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(PWD) modules
++	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) modules
+ 
+ clean:
+-	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(PWD) clean
++	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) clean
+diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/vision/aiy-vision.c port/drivers/vision/aiy-vision.c
+--- docs/aiyprojects-raspbian/drivers/vision/aiy-vision.c	2026-10-20 17:54:28
++++ port/drivers/vision/aiy-vision.c	2026-10-20 19:26:47
+@@ -35,6 +35,7 @@
+ #include <linux/module.h>
+ #include <linux/moduleparam.h>
+ #include <linux/mutex.h>
++#include <linux/of.h>
+ #include <linux/spi/spi.h>
+ #include <linux/types.h>
+ #include <linux/uaccess.h>
+@@ -1239,7 +1240,7 @@
+     return -EINVAL;
+ 
+   vma->vm_ops = &visionbonnet_vm_ops;
+-  vma->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP | VM_DONTCOPY;
++  vm_flags_set(vma, VM_DONTEXPAND | VM_DONTDUMP | VM_DONTCOPY);
+   vma->vm_private_data = buf;
+   return 0;
+ }
+@@ -1252,7 +1253,7 @@
+   .mmap = visionbonnet_mmap,
+ };
+ 
+-static int visionbonnet_uevent(struct device *dev,
++static int visionbonnet_uevent(const struct device *dev,
+                                struct kobj_uevent_env *env) {
+   add_uevent_var(env, "DEVMODE=%#o", 0666);
+   return 0;
+@@ -1279,11 +1280,6 @@
+ 
+   dev_notice(&spi->dev, "Initializing\n");
+ 
+-  if (!spi_busnum_to_master(0)) {
+-    dev_err(&spi->dev, "No spi master found\n");
+-    return -ENODEV;
+-  }
+-
+   bonnet = devm_kzalloc(&spi->dev, sizeof(*bonnet), GFP_KERNEL);
+   if (!bonnet) {
+     dev_err(&spi->dev, "Out of memory\n");
+@@ -1311,7 +1307,7 @@
+   bonnet->spicomm_cdev.owner = THIS_MODULE;
+   alloc_chrdev_region(&bonnet->spicomm_region, 0, 1, "vision_spicomm");
+   cdev_add(&bonnet->spicomm_cdev, MKDEV(MAJOR(bonnet->spicomm_region), 0), 1);
+-  bonnet->spicomm_class = class_create(THIS_MODULE, "spicomm");
++  bonnet->spicomm_class = class_create("spicomm");
+   bonnet->spicomm_class->dev_uevent = visionbonnet_uevent;
+   bonnet->spicomm_device = device_create(
+       bonnet->spicomm_class, NULL, MKDEV(MAJOR(bonnet->spicomm_region), 0),
+@@ -1373,7 +1369,7 @@
+   // This facilitates large transfers with a single toggling of CS, to
+   // make things like booting the bonnet happy.
+   spi->mode |= SPI_NO_CS;
+-  spi->cs_gpio = -1;
++  spi_set_csgpiod(spi, 0, NULL);
+   ret = visionbonnet_set_spi_freq(bonnet, SPI_NORMAL_FREQ);
+   if (ret) {
+     dev_err(&spi->dev, "spi_setup failed: %d\n", ret);
+@@ -1395,7 +1391,7 @@
+   return ret;
+ }
+ 
+-static int visionbonnet_remove(struct spi_device *spi) {
++static void visionbonnet_remove(struct spi_device *spi) {
+   visionbonnet_t *bonnet = spi->dev.platform_data;
+   mutex_lock(&bonnet->lock);
+   visionbonnet_cancel_transactions(bonnet);
+@@ -1403,7 +1399,6 @@
+   drain_workqueue(bonnet->workqueue);
+ 
+   visionbonnet_destroy(bonnet);
+-  return 0;
+ }
+ 
+ static const struct of_device_id visionbonnet_of_match[] = {
+@@ -1426,6 +1421,7 @@
+         },
+     .probe = visionbonnet_probe,
+     .remove = visionbonnet_remove,
++    .id_table = gvb_id,
+ };
+ module_spi_driver(visionbonnet_driver);
+ 

@@ -1,0 +1,800 @@
+diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/aiy/_buzzer.py port/python/src/aiy/_buzzer.py
+--- docs/aiyprojects-raspbian/src/aiy/_buzzer.py	2026-10-20 17:54:28
++++ port/python/src/aiy/_buzzer.py	2026-10-20 20:01:13
+@@ -19,9 +19,28 @@
+ frequency, period, and pulse width, and also provide a simple means for playing
+ melodic sounds.
+ """
++import glob
+ import os
+ import time
+ 
++
++def _kernel_gpio_number(bcm_gpio):
++    """Returns the kernel's global number for a BCM GPIO.
++
++    The SoC gpiochip base moved from 0 to 512 in kernel 6.6, and pwm-soft takes
++    global numbers.
++    """
++    for chip in glob.glob('/sys/class/gpio/gpiochip*'):
++        try:
++            with open(os.path.join(chip, 'label')) as f:
++                if f.read().strip() != 'pinctrl-bcm2835':
++                    continue
++            with open(os.path.join(chip, 'base')) as f:
++                return int(f.read()) + bcm_gpio
++        except (OSError, ValueError):
++            continue
++    return bcm_gpio
++
+ USEC = 1000000
+ 
+ 
+@@ -65,6 +84,7 @@
+             gpio: the number of the GPIO to use for PWM output.
+         """
+         self.gpio = gpio
++        self._kernel_gpio = _kernel_gpio_number(gpio)
+         self._pulse_fh = None
+         self._period_fh = None
+         self._exported = False
+@@ -129,14 +149,14 @@
+         the given PWM path. If it fails, this will raise an exception.
+         """
+         try:
+-            self._pwrite_int(self.PWM_SOFT_EXPORT_PATH, self.gpio)
++            self._pwrite_int(self.PWM_SOFT_EXPORT_PATH, self._kernel_gpio)
+         except BaseException:
+             self._exported = False
+             raise
+ 
+         self._exported = True
+ 
+-        period_path = self._make_pwm_path(self.gpio) + '/period'
++        period_path = self._make_pwm_path(self._kernel_gpio) + '/period'
+         try:
+             self._wait_for_access(period_path)
+             self._period_fh = open(period_path, 'w')
+@@ -144,7 +164,7 @@
+             self._unexport_pwm()
+             raise
+ 
+-        pulse_path = self._make_pwm_path(self.gpio) + '/pulse'
++        pulse_path = self._make_pwm_path(self._kernel_gpio) + '/pulse'
+         try:
+             self._wait_for_access(pulse_path)
+             self._pulse_fh = open(pulse_path, 'w')
+@@ -165,7 +185,7 @@
+             if self._pulse_fh is not None:
+                 self._pulse_fh.close()
+ 
+-            self._pwrite_int(self.PWM_SOFT_UNEXPORT_PATH, self.gpio)
++            self._pwrite_int(self.PWM_SOFT_UNEXPORT_PATH, self._kernel_gpio)
+             self._exported = False
+ 
+     def open(self):
+diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/aiy/camera.py port/python/src/aiy/camera.py
+--- docs/aiyprojects-raspbian/src/aiy/camera.py	1970-01-01 01:00:00
++++ port/python/src/aiy/camera.py	2026-10-20 19:47:59
+@@ -0,0 +1,415 @@
++# Licensed under the Apache License, Version 2.0.
++"""picamera-compatible camera for the Vision Kit on libcamera (Picamera2).
++
++The Vision Bonnet runs inference on the raw CSI-2 stream as it passes to the Pi, so
++all it needs is the sensor streaming in the 1640x1232 binned mode (picamera
++``sensor_mode=4``). This module keeps the subset of the picamera 1.13 API used by the
++AIY examples so they only need their import changed::
++
++    from aiy.camera import PiCamera
++
++    with PiCamera(sensor_mode=4, resolution=(1640, 1232), framerate=30) as camera:
++        camera.start_preview()
++        ...
++
++Differences from picamera:
++  * The sensor starts streaming when the camera is opened (picamera did the same as
++    far as the bonnet is concerned) and keeps streaming until ``close()``.
++  * ``start_preview()`` only shows a DRM preview when an HDMI display is connected,
++    or when ``AIY_CAMERA_PREVIEW=1``; ``AIY_CAMERA_PREVIEW=0`` disables it.
++  * ``annotate_text`` is drawn on captured images only, not on the preview or video.
++  * ``request_key_frame()`` is a no-op; H.264 always repeats headers and has an
++    I-frame every ``intra_period`` frames (default: one per second).
++  * Supported capture formats: jpeg, png, bmp, gif, rgb, bgr. Recording: h264, mjpeg.
++"""
++
++import collections
++import glob
++import io
++import logging
++import os
++import threading
++import time
++
++import numpy as np
++from PIL import ImageDraw
++
++from picamera2 import Picamera2, Preview
++from picamera2.encoders import H264Encoder, MJPEGEncoder
++from picamera2.outputs import Output
++
++logger = logging.getLogger(__name__)
++
++# picamera sensor modes of Camera Module v2 (imx219) mapped to the libcamera sensor
++# output size with the same field of view. Modes 5 and 6 were binned crops which
++# libcamera doesn't offer, so they fall back to the full-FoV binned mode.
++SENSOR_MODES = {
++    0: (1640, 1232),  # picamera picked a mode automatically; use the bonnet's mode.
++    1: (1920, 1080),
++    2: (3280, 2464),
++    3: (3280, 2464),
++    4: (1640, 1232),
++    5: (1640, 1232),
++    6: (1640, 1232),
++    7: (640, 480),
++}
++
++_CAPTURE_FORMATS = {'jpeg': 'JPEG', 'jpg': 'JPEG', 'png': 'PNG', 'bmp': 'BMP', 'gif': 'GIF'}
++
++Resolution = collections.namedtuple('Resolution', ('width', 'height'))
++
++
++class PiCameraError(Exception):
++    """Raised for unsupported or invalid operations."""
++
++
++class Color(str):
++    """Stand-in for picamera.Color; any PIL color name or '#rrggbb' works."""
++
++
++def _display_connected():
++    for status in glob.glob('/sys/class/drm/card*-HDMI-A-*/status'):
++        try:
++            with open(status) as f:
++                if f.read().strip() == 'connected':
++                    return True
++        except OSError:
++            pass
++    return False
++
++
++def _preview_wanted():
++    env = os.environ.get('AIY_CAMERA_PREVIEW')
++    if env is not None:
++        return env not in ('0', 'no', 'false', '')
++    return _display_connected()
++
++
++class _Overlay:
++    """Returned by PiCamera.add_overlay(); mirrors picamera's renderer.update()."""
++
++    def __init__(self, camera, size):
++        self._camera = camera
++        self._size = tuple(size)
++
++    def update(self, source):
++        width, height = self._size
++        array = np.frombuffer(source, dtype=np.uint8).reshape((height, width, 4))
++        self._camera._set_overlay(array)
++
++    def close(self):
++        self._camera._set_overlay(None)
++
++
++class _ForwardOutput(Output):
++    """Sends each encoded frame to a file-like object or a PiCameraCircularIO."""
++
++    def __init__(self, target):
++        super().__init__()
++        self._target = target
++
++    def outputframe(self, frame, keyframe=True, timestamp=None, packet=None, audio=False):
++        if audio:
++            return
++        if isinstance(self._target, PiCameraCircularIO):
++            self._target._add_frame(bytes(frame), keyframe, timestamp)
++        else:
++            self._target.write(frame)
++
++
++class PiCameraCircularIO:
++    """Keeps the last `seconds` of encoded video in memory, like picamera's class."""
++
++    def __init__(self, camera, size=None, seconds=None, bitrate=17000000, splitter_port=1):
++        if seconds is None and size is None:
++            raise PiCameraError('Either size or seconds must be given')
++        self._seconds = seconds
++        self._size = size
++        self._frames = collections.deque()  # (time, keyframe, data)
++        self._bytes = 0
++        self._lock = threading.Lock()
++
++    def _add_frame(self, data, keyframe, timestamp):
++        now = time.monotonic()
++        with self._lock:
++            self._frames.append((now, keyframe, data))
++            self._bytes += len(data)
++            while self._frames and (
++                    (self._seconds is not None and now - self._frames[0][0] > self._seconds) or
++                    (self._size is not None and self._bytes > self._size)):
++                self._bytes -= len(self._frames.popleft()[2])
++
++    def write(self, data):
++        self._add_frame(bytes(data), True, None)
++        return len(data)
++
++    def copy_to(self, output, size=None, seconds=None, first_frame=None):
++        """Writes buffered video to `output` (path or file), starting at a keyframe."""
++        with self._lock:
++            frames = list(self._frames)
++        if seconds is not None and frames:
++            cutoff = frames[-1][0] - seconds
++            frames = [f for f in frames if f[0] >= cutoff]
++        while frames and not frames[0][1]:
++            frames.pop(0)
++        own = isinstance(output, str)
++        out = open(output, 'wb') if own else output
++        try:
++            written = 0
++            for _, _, data in frames:
++                if size is not None and written + len(data) > size:
++                    break
++                out.write(data)
++                written += len(data)
++        finally:
++            if own:
++                out.close()
++
++    def clear(self):
++        with self._lock:
++            self._frames.clear()
++            self._bytes = 0
++
++    def flush(self):
++        pass
++
++    def close(self):
++        self.clear()
++
++
++class PiCamera:
++    """Subset of picamera.PiCamera on top of Picamera2."""
++
++    def __init__(self, camera_num=0, stereo_mode='none', stereo_decimate=False,
++                 resolution=None, framerate=None, sensor_mode=0, **kwargs):
++        if sensor_mode not in SENSOR_MODES:
++            raise PiCameraError('Unsupported sensor_mode %r' % sensor_mode)
++        self._sensor_mode = sensor_mode
++        self._sensor_size = SENSOR_MODES[sensor_mode]
++        self._resolution = Resolution(*(resolution or self._sensor_size))
++        self._framerate = framerate or 30
++        self._lock = threading.RLock()
++        self._encoder = None
++        self._encoder_file = None
++        self._preview = False
++        self._closed = False
++
++        self.annotate_text = ''
++        self.annotate_text_size = 32
++        self.annotate_foreground = Color('white')
++        self.annotate_background = None
++
++        self._picam2 = Picamera2(camera_num)
++        self._configure()
++        self._picam2.start()
++
++    # Configuration ----------------------------------------------------------------
++
++    def _configure(self):
++        config = self._picam2.create_video_configuration(
++            main={'size': tuple(self._resolution), 'format': 'RGB888'},
++            sensor={'output_size': self._sensor_size, 'bit_depth': 10},
++            controls={'FrameRate': float(self._framerate)},
++            buffer_count=4)
++        self._picam2.configure(config)
++        logger.debug('Camera configured: %s', self._picam2.camera_configuration()['sensor'])
++
++    def _restart(self, change):
++        with self._lock:
++            if self._encoder:
++                raise PiCameraError('Cannot change camera configuration while recording')
++            self._picam2.stop()
++            change()
++            self._picam2.start()
++
++    @property
++    def resolution(self):
++        return self._resolution
++
++    @resolution.setter
++    def resolution(self, value):
++        def change():
++            self._resolution = Resolution(*value)
++            self._configure()
++        self._restart(change)
++
++    @property
++    def framerate(self):
++        return self._framerate
++
++    @framerate.setter
++    def framerate(self, value):
++        self._framerate = value
++        self._picam2.set_controls({'FrameRate': float(value)})
++
++    @property
++    def sensor_mode(self):
++        return self._sensor_mode
++
++    @property
++    def closed(self):
++        return self._closed
++
++    @property
++    def recording(self):
++        return self._encoder is not None
++
++    @property
++    def previewing(self):
++        return self._preview
++
++    # Preview and overlays ---------------------------------------------------------
++
++    def start_preview(self, **options):
++        """Starts a DRM preview when a display is connected; otherwise a no-op."""
++        with self._lock:
++            if self._preview or not _preview_wanted():
++                return
++            if self._encoder:
++                logger.warning('Preview cannot be started while recording; skipped')
++                return
++
++            def change():
++                try:
++                    self._picam2.start_preview(Preview.DRM)
++                    self._preview = True
++                except Exception as e:  # No usable display.
++                    logger.warning('Preview unavailable: %s', e)
++            self._restart(change)
++
++    def stop_preview(self):
++        with self._lock:
++            if not self._preview or self._encoder:
++                return
++
++            def change():
++                self._picam2.stop_preview()
++                self._preview = False
++            self._restart(change)
++
++    def add_overlay(self, source, size=None, format=None, layer=0, alpha=255, **options):
++        overlay = _Overlay(self, size or self._resolution)
++        overlay.update(source)
++        return overlay
++
++    def remove_overlay(self, overlay):
++        overlay.close()
++
++    def _set_overlay(self, array):
++        if self._preview:
++            self._picam2.set_overlay(array)
++
++    # Stills -----------------------------------------------------------------------
++
++    def capture(self, output, format=None, use_video_port=False, resize=None,
++                splitter_port=0, bayer=False, quality=85, **options):
++        """Captures the current main-stream frame to a path or file-like object."""
++        if format is None:
++            if not isinstance(output, str):
++                raise PiCameraError('format is required when output is not a filename')
++            format = os.path.splitext(output)[1][1:]
++        format = format.lower()
++
++        image = self._picam2.capture_image('main')
++        if resize:
++            image = image.resize(tuple(resize))
++        self._annotate(image)
++
++        own = isinstance(output, str)
++        out = open(output, 'wb') if own else output
++        try:
++            if format in _CAPTURE_FORMATS:
++                save_options = {'quality': quality} if _CAPTURE_FORMATS[format] == 'JPEG' else {}
++                image.save(out, _CAPTURE_FORMATS[format], **save_options)
++            elif format == 'rgb':
++                out.write(image.tobytes())
++            elif format == 'bgr':
++                out.write(image.tobytes('raw', 'BGR'))
++            else:
++                raise PiCameraError('Unsupported capture format %r' % format)
++        finally:
++            if own:
++                out.close()
++
++    def _annotate(self, image):
++        if not self.annotate_text:
++            return
++        draw = ImageDraw.Draw(image)
++        text = self.annotate_text
++        if isinstance(text, bytes):
++            text = text.decode('ascii', 'replace')
++        box = draw.multiline_textbbox((0, 0), text)
++        x = (image.width - (box[2] - box[0])) // 2
++        if self.annotate_background:
++            draw.rectangle((x - 4, 0, x + box[2] - box[0] + 4, box[3] + 4),
++                           fill=str(self.annotate_background))
++        draw.multiline_text((x, 2), text, fill=str(self.annotate_foreground or 'white'),
++                            align='center')
++
++    # Video ------------------------------------------------------------------------
++
++    def start_recording(self, output, format=None, resize=None, splitter_port=1,
++                        bitrate=17000000, quality=None, profile=None, inline_headers=True,
++                        intra_period=None, **options):
++        with self._lock:
++            if self._encoder:
++                raise PiCameraError('Already recording')
++            if format is None:
++                if not isinstance(output, str):
++                    raise PiCameraError('format is required when output is not a filename')
++                format = os.path.splitext(output)[1][1:]
++            format = format.lower()
++            if format == 'h264':
++                encoder = H264Encoder(bitrate=bitrate, repeat=True,
++                                      iperiod=intra_period or int(self._framerate),
++                                      profile=profile)
++            elif format == 'mjpeg':
++                encoder = MJPEGEncoder(bitrate=bitrate)
++            else:
++                raise PiCameraError('Unsupported recording format %r' % format)
++
++            if isinstance(output, str):
++                self._encoder_file = open(output, 'wb')
++                target = self._encoder_file
++            else:
++                target = output
++            self._picam2.start_encoder(encoder, _ForwardOutput(target))
++            self._encoder = encoder
++
++    def wait_recording(self, timeout=0, splitter_port=1):
++        if not self._encoder:
++            raise PiCameraError('Not recording')
++        time.sleep(timeout)
++
++    def stop_recording(self, splitter_port=1):
++        with self._lock:
++            if not self._encoder:
++                return
++            self._picam2.stop_encoder(self._encoder)
++            self._encoder = None
++            if self._encoder_file:
++                self._encoder_file.close()
++                self._encoder_file = None
++
++    def request_key_frame(self, splitter_port=1):
++        pass
++
++    # Lifecycle --------------------------------------------------------------------
++
++    def close(self):
++        with self._lock:
++            if self._closed:
++                return
++            self.stop_recording()
++            self._picam2.stop()
++            if self._preview:
++                self._picam2.stop_preview()
++                self._preview = False
++            self._picam2.close()
++            self._closed = True
++
++    def __enter__(self):
++        return self
++
++    def __exit__(self, exc_type, exc_value, exc_tb):
++        self.close()
+diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/aiy/pins.py port/python/src/aiy/pins.py
+--- docs/aiyprojects-raspbian/src/aiy/pins.py	2026-10-20 17:54:28
++++ port/python/src/aiy/pins.py	2026-10-20 20:06:31
+@@ -72,12 +72,14 @@
+    (BCM 23). This should be used with :class:`gpiozero.Button`.
+ """
+ 
++import glob
+ import os
+ from collections import namedtuple
+ from copy import deepcopy
+ from os import listdir
+ import subprocess
+ import time
++import weakref
+ from gpiozero import Device
+ from gpiozero import Factory
+ from gpiozero import Pin
+@@ -91,6 +93,14 @@
+ from gpiozero.exc import PinUnsupported
+ from gpiozero.threads import GPIOThread
+ 
++def _aiy_pwmchip_root():
++    """Finds the pwmchip of the pwm-aiy-io driver instead of assuming pwmchip0."""
++    for chip in sorted(glob.glob('/sys/class/pwm/pwmchip*')):
++        device = os.path.realpath(os.path.join(chip, 'device'))
++        if os.path.basename(device) == 'pwm-aiy-io':
++            return chip
++    return '/sys/class/pwm/pwmchip0'
++
+ def get_pin_offset():
+     cmd = 'cat /sys/module/gpio_aiy_io/drivers/platform:gpio-aiy-io/gpio-aiy-io/gpio/gpiochip*/base'
+     return int(subprocess.run(cmd, shell=True, capture_output=True).stdout.strip())
+@@ -275,7 +285,7 @@
+ 
+     Supports the SysFs node for pwm control.
+     """
+-    _FS_ROOT = '/sys/class/pwm/pwmchip0'
++    _FS_ROOT = _aiy_pwmchip_root()
+ 
+     class PwmState:
+         """Container for the state of the pwm.
+@@ -482,6 +492,9 @@
+                 last_time = new_time
+ 
+ 
++HatPinInfo = namedtuple('HatPinInfo', ['name'])
++
++
+ class HatPin(Pin):
+     """A Pin implementation that supports pins controlled by the hat's MCU.
+ 
+@@ -513,6 +526,11 @@
+ 
+         self._closed = False
+         self._poller = DebouncingPoller(self._get_state, None)
++
++    def _get_info(self):
++        # gpiozero 2.x releases reservations by pin.info.name, so the name is
++        # the spec that HybridFactory.reserve_pins() was given.
++        return HatPinInfo(self.spec)
+         self._edges = None
+         self._set_bounce(.001)
+         # Start out with gpio enabled for compatibility.
+@@ -658,11 +676,49 @@
+     def __init__(self, *factories):
+         super(HybridFactory, self).__init__()
+         self.factories = factories
++        self._hat_reservations = {}
+ 
+     def close(self):
+         for factory in self.factories:
+             factory.close()
+ 
++    # gpiozero 2.x reserves pins through board_info, which only knows the Pi's
++    # header. Bonnet pins (AIYPinSpec) are reserved here; everything else goes
++    # to the default factory.
++
++    def _default_factory(self):
++        return self.factories[-1]
++
++    def _get_board_info(self):
++        return self._default_factory().board_info
++
++    def reserve_pins(self, requester, *names):
++        hat_names = [n for n in names if isinstance(n, AIYPinSpec)]
++        other_names = [n for n in names if not isinstance(n, AIYPinSpec)]
++        with self._res_lock:
++            for spec in hat_names:
++                for reserver_ref in self._hat_reservations.get(spec, []):
++                    reserver = reserver_ref()
++                    if reserver is not None and requester._conflicts_with(reserver):
++                        raise GPIOPinInUse('pin %s is already in use by %r' % (spec, reserver))
++                self._hat_reservations.setdefault(spec, []).append(weakref.ref(requester))
++        if other_names:
++            self._default_factory().reserve_pins(requester, *other_names)
++
++    def release_pins(self, reserver, *names):
++        other_names = [n for n in names if not isinstance(n, AIYPinSpec)]
++        with self._res_lock:
++            for spec in names:
++                if isinstance(spec, AIYPinSpec) and spec in self._hat_reservations:
++                    self._hat_reservations[spec] = [
++                        r for r in self._hat_reservations[spec] if r() not in (reserver, None)]
++        if other_names:
++            self._default_factory().release_pins(reserver, *other_names)
++
++    def release_all(self, reserver):
++        self.release_pins(reserver, *list(self._hat_reservations))
++        self._default_factory().release_all(reserver)
++
+     def pin(self, spec):
+         for factory in self.factories:
+             try:
+@@ -695,7 +751,8 @@
+             pin.close()
+ 
+     def pin(self, spec):
+-        if spec in self.pins:
++        # A closed pin can't be reopened, so a later device gets a fresh one.
++        if spec in self.pins and not self.pins[spec]._closed:
+             return self.pins.get(spec)
+         if isinstance(spec, AIYPinSpec):
+             pin = HatPin(spec)
+diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/aiy/vision/annotator.py port/python/src/aiy/vision/annotator.py
+--- docs/aiyprojects-raspbian/src/aiy/vision/annotator.py	2026-10-20 17:54:28
++++ port/python/src/aiy/vision/annotator.py	2026-10-20 19:48:18
+@@ -30,8 +30,6 @@
+ 
+ from PIL import Image, ImageDraw
+ 
+-import picamera
+-
+ def _round_to_bit(value, power):
+     """Rounds the given value to the next multiple of 2^power.
+ 
+@@ -57,7 +55,7 @@
+     """Utility for managing annotations on the camera preview.
+ 
+     Args:
+-      camera: picamera.PiCamera camera object to overlay on top of.
++      camera: aiy.camera.PiCamera camera object to overlay on top of.
+       bg_color: PIL.ImageColor (with alpha) for the background of the overlays.
+       default_color: PIL.ImageColor (with alpha) default for the drawn content.
+     """
+@@ -73,31 +71,6 @@
+         self._bg_color = bg_color if bg_color else (0, 0, 0, 0xA0)
+         self._default_color = default_color if default_color else (0xFF, 0, 0, 0xFF)
+ 
+-        # MMALPort has a bug in enable.wrapper, where it always calls
+-        # self._pool.send_buffer(block=False) regardless of the port direction.
+-        # This is in contrast to setup time when it only calls
+-        # self._pool.send_all_buffers(block=False)
+-        # if self._port[0].type == mmal.MMAL_PORT_TYPE_OUTPUT.
+-        # Because of this bug updating an overlay once will log a MMAL_EAGAIN
+-        # error every update. This is safe to ignore as we the user is driving
+-        # the renderer input port with calls to update() that dequeue buffers
+-        # and sends them to the input port (so queue is empty on when
+-        # send_all_buffers(block=False) is called from wrapper).
+-        # As a workaround, monkey patch MMALPortPool.send_buffer and
+-        # silence the "error" if thrown by our overlay instance.
+-        original_send_buffer = picamera.mmalobj.MMALPortPool.send_buffer
+-
+-        def silent_send_buffer(zelf, **kwargs):
+-            try:
+-                original_send_buffer(zelf, **kwargs)
+-            except picamera.exc.PiCameraMMALError as error:
+-                # Only silence MMAL_EAGAIN for our target instance.
+-                our_target = self._overlay.renderer.inputs[0].pool == zelf
+-                if not our_target or error.status != 14:
+-                    raise error
+-
+-        picamera.mmalobj.MMALPortPool.send_buffer = silent_send_buffer
+-
+     def update(self):
+         """Updates the contents of the overlay."""
+         self._overlay.update(self._buffer.tobytes())
+@@ -158,7 +131,8 @@
+ 
+     Demonstrates setting up a camera preview, drawing slowly moving/intersecting
+     animations over it, and clearing the overlays."""
+-    with picamera.PiCamera() as camera:
++    from aiy.camera import PiCamera
++    with PiCamera() as camera:
+         # Resolution can be arbitrary.
+         camera.resolution = (351, 561)
+         camera.start_preview()
+diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/any_model_camera.py port/python/src/examples/vision/any_model_camera.py
+--- docs/aiyprojects-raspbian/src/examples/vision/any_model_camera.py	2026-10-20 17:54:28
++++ port/python/src/examples/vision/any_model_camera.py	2026-10-20 19:47:59
+@@ -26,7 +26,7 @@
+ """
+ import argparse
+ 
+-from picamera import PiCamera
++from aiy.camera import PiCamera
+ 
+ from aiy.vision.inference import CameraInference, ModelDescriptor
+ from aiy.vision.models import utils
+diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/face_camera_trigger.py port/python/src/examples/vision/face_camera_trigger.py
+--- docs/aiyprojects-raspbian/src/examples/vision/face_camera_trigger.py	2026-10-20 17:54:28
++++ port/python/src/examples/vision/face_camera_trigger.py	2026-10-20 19:47:59
+@@ -17,7 +17,7 @@
+ from aiy.vision.inference import CameraInference
+ from aiy.vision.models import face_detection
+ 
+-from picamera import PiCamera
++from aiy.camera import PiCamera
+ 
+ 
+ def main():
+diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/face_detection_camera.py port/python/src/examples/vision/face_detection_camera.py
+--- docs/aiyprojects-raspbian/src/examples/vision/face_detection_camera.py	2026-10-20 17:54:28
++++ port/python/src/examples/vision/face_detection_camera.py	2026-10-20 19:47:59
+@@ -22,7 +22,7 @@
+ """
+ import argparse
+ 
+-from picamera import PiCamera
++from aiy.camera import PiCamera
+ 
+ from aiy.vision.inference import CameraInference
+ from aiy.vision.models import face_detection
+diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/image_classification_camera.py port/python/src/examples/vision/image_classification_camera.py
+--- docs/aiyprojects-raspbian/src/examples/vision/image_classification_camera.py	2026-10-20 17:54:28
++++ port/python/src/examples/vision/image_classification_camera.py	2026-10-20 19:47:59
+@@ -26,7 +26,7 @@
+ 
+ from aiy.vision.inference import CameraInference
+ from aiy.vision.models import image_classification
+-from picamera import PiCamera
++from aiy.camera import PiCamera
+ 
+ def classes_info(classes):
+     return ', '.join('%s (%.2f)' % pair for pair in classes)
+diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/joy/joy_detection_demo.py port/python/src/examples/vision/joy/joy_detection_demo.py
+--- docs/aiyprojects-raspbian/src/examples/vision/joy/joy_detection_demo.py	2026-10-20 17:54:28
++++ port/python/src/examples/vision/joy/joy_detection_demo.py	2026-10-20 19:47:59
+@@ -27,7 +27,7 @@
+ import time
+ 
+ from PIL import Image, ImageDraw, ImageFont
+-from picamera import PiCamera
++from aiy.camera import PiCamera
+ 
+ from aiy.board import Board
+ from aiy.leds import Color, Leds, Pattern, PrivacyLed
+diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/mobilenet_based_classifier.py port/python/src/examples/vision/mobilenet_based_classifier.py
+--- docs/aiyprojects-raspbian/src/examples/vision/mobilenet_based_classifier.py	2026-10-20 17:54:28
++++ port/python/src/examples/vision/mobilenet_based_classifier.py	2026-10-20 19:47:59
+@@ -16,7 +16,7 @@
+ """Script to run generic MobileNet based classification model."""
+ import argparse
+ 
+-from picamera import PiCamera, Color
++from aiy.camera import PiCamera, Color
+ 
+ from aiy.vision import inference
+ from aiy.vision.models import utils
+diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/object_meter/object_meter.py port/python/src/examples/vision/object_meter/object_meter.py
+--- docs/aiyprojects-raspbian/src/examples/vision/object_meter/object_meter.py	2026-10-20 17:54:28
++++ port/python/src/examples/vision/object_meter/object_meter.py	2026-10-20 19:47:59
+@@ -15,7 +15,7 @@
+ """Object detection with servo output demo."""
+ import argparse
+ import time
+-import picamera
++from aiy import camera as picamera
+ 
+ from aiy.pins import PIN_A
+ from aiy.pins import BUTTON_GPIO_PIN
+diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/examples/vision/video_capture/video_capture.py port/python/src/examples/vision/video_capture/video_capture.py
+--- docs/aiyprojects-raspbian/src/examples/vision/video_capture/video_capture.py	2026-10-20 17:54:28
++++ port/python/src/examples/vision/video_capture/video_capture.py	2026-10-20 19:47:59
+@@ -42,7 +42,7 @@
+ import io
+ import numpy as np
+ import os
+-import picamera
++from aiy import camera as picamera
+ import pickle
+ import sys
+ import time
+diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/tests/camera_inference_latency_test.py port/python/src/tests/camera_inference_latency_test.py
+--- docs/aiyprojects-raspbian/src/tests/camera_inference_latency_test.py	2026-10-20 17:54:28
++++ port/python/src/tests/camera_inference_latency_test.py	2026-10-20 19:47:59
+@@ -18,7 +18,7 @@
+ 
+ from functools import partial
+ 
+-from picamera import PiCamera
++from aiy.camera import PiCamera
+ 
+ from aiy.vision.inference import CameraInference
+ from aiy.vision.models import dish_classification
+diff --color -ruN -x __pycache__ docs/aiyprojects-raspbian/src/tests/engine_test.py port/python/src/tests/engine_test.py
+--- docs/aiyprojects-raspbian/src/tests/engine_test.py	2026-10-20 17:54:28
++++ port/python/src/tests/engine_test.py	2026-10-20 19:47:59
+@@ -1,6 +1,6 @@
+ import unittest
+ 
+-from picamera import PiCamera
++from aiy.camera import PiCamera
+ 
+ from aiy.vision.inference import InferenceEngine, InferenceException, \
+                                  ImageInference, CameraInference

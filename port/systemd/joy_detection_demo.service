@@ -1,0 +1,18 @@
+[Unit]
+Description=AIY Joy Detection Demo
+Requires=dev-vision_spicomm.device
+After=dev-vision_spicomm.device
+
+[Service]
+Type=simple
+Restart=no
+User=@USER@
+# lgpio (gpiozero's default backend) creates .lgd-nfy* files in the working
+# directory, so it must be writable by the user.
+WorkingDirectory=~
+Environment=AIY_BOARD_NAME=AIY-Board
+Environment=LIBCAMERA_LOG_LEVELS=*:WARN
+ExecStart=/opt/aiy/venv/bin/python /opt/aiy/python/src/examples/vision/joy/joy_detection_demo.py @JOY_ARGS@
+
+[Install]
+WantedBy=multi-user.target
