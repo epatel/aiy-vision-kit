@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installs the AIY Vision Kit v1 stack on Raspberry Pi OS Lite (32-bit) Bookworm.
+# Installs the AIY Vision Kit v1 stack on Raspberry Pi OS Lite (32-bit) Bookworm or Trixie.
 #
 #   sudo ./install.sh --binaries /path/to/aiy-binaries.tgz [options]
 #
@@ -48,9 +48,8 @@ id "$TARGET_USER" >/dev/null 2>&1 || die "user $TARGET_USER does not exist"
 # Read os-release in a subshell: it defines VERSION and friends.
 OS_CODENAME="$(. /etc/os-release && echo "${VERSION_CODENAME:-}")"
 case "$OS_CODENAME" in
-  bookworm) ;;
-  trixie) echo "warning: Trixie is untested; continuing" ;;
-  *) die "unsupported OS: $(. /etc/os-release && echo "${PRETTY_NAME:-unknown}") (need Raspberry Pi OS Bookworm)" ;;
+  bookworm|trixie) ;;
+  *) die "unsupported OS: $(. /etc/os-release && echo "${PRETTY_NAME:-unknown}") (need Raspberry Pi OS Bookworm or Trixie)" ;;
 esac
 if ! tr -d '\0' < /proc/device-tree/hat/product 2>/dev/null | grep -q VisionBonnet; then
   echo "warning: no Vision Bonnet found in /proc/device-tree/hat; continuing anyway"

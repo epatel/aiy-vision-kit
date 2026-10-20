@@ -34,6 +34,12 @@ then Trixie). See `README.md` for the plan and `TODO.html` for the checklist.
 - A normal boot logs `aiy-vision spi0.0: Failed to bind reset GPIO: -517` several times. That's EPROBE_DEFER while it waits
   for `gpio-aiy-io`, which is fine. It then logs "Resetting myriad", "Writing myriad firmware", "Myriad ready". Expect the same order on Bookworm.
 
+## Trixie test card (current, 2026-10-20)
+- `pi@vision-kit.local` is now a **Trixie** card: kernel `6.18.50+rpt-rpi-v6`, Python 3.13.5. It was set up only by `port/deploy.sh`, and passwordless sudo
+  was added by hand in `/etc/sudoers.d/010_pi-nopasswd`. The Bookworm card below uses the same hostname, so check `uname -r` to see which is inserted.
+- Python-only changes: rsync `port/python/` to the Pi and `sudo rsync` it into `/opt/aiy/python/` (editable install). That skips the 10-minute DKMS rebuild of a full `deploy.sh`.
+- Driver code must build on both 6.12 and 6.18. Use `LINUX_VERSION_CODE` checks (see `gpio-aiy-io.c` and `pwm-soft.c`).
+
 ## Bookworm test card (2026-10-20)
 - `ssh pi@vision-kit.local` (key auth). Bookworm Lite 32-bit, kernel `6.12.109+rpt-rpi-v6`, Python 3.11.2, protobuf 4.21.12.
   Only one card fits the Pi at a time, so if `raspberrypi.local` doesn't answer, the reference card isn't inserted.

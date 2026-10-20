@@ -398,8 +398,12 @@ static int __init soft_pwm_init(void) {
   printk(KERN_INFO "SoftPWM v0.1 initializing.\n");
   printk(KERN_INFO "Clock resolution is %u ns\n", hrtimer_resolution);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,13,0)
+  hrtimer_setup(&hr_timer, soft_pwm_hrtimer_callback, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+#else
   hrtimer_init(&hr_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
   hr_timer.function = &soft_pwm_hrtimer_callback;
+#endif
 
   status = class_register(&soft_pwm_class);
   if (status < 0) goto fail_no_class;

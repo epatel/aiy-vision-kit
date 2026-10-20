@@ -1,4 +1,4 @@
-# AIY Vision Kit v1 on a current Raspberry Pi OS
+# AIY Vision Kit v1 on a current Raspberry Pi OS (Bookworm and Trixie)
 
 Goal: run the [Google AIY Vision Kit v1](https://aiyprojects.withgoogle.com/vision-v1/)
 (Pi Zero W + Vision Bonnet with Movidius MA2450 + Pi Camera v2) on **Raspberry Pi OS Lite 32-bit
@@ -8,7 +8,7 @@ Status (2026-10-20): **Phase 2 gate passed.** On Bookworm (kernel 6.12) the patc
 face detection matches the Buster result exactly. **Phase 3:** live camera inference works through picamera2 using the `aiy.camera` shim,
 and the boxes line up with the faces. **Phase 5:** LEDs, buzzer, expansion-pin GPIO/PWM and the ADC work, and the Joy Detector runs.
 The button works too. **Phase 4+6:** [`port/install.sh`](port/README.md) sets up a whole card (DKMS drivers, firmware/models,
-udev, venv, Joy Detector service), and every test passes on the installed system. Left: a test on a freshly flashed card.
+udev, venv, Joy Detector service), and every test passes on the installed system. **Trixie** (kernel 6.18, Python 3.13) works as well: a freshly flashed card set up only by `deploy.sh` passes every test.
 
 **To install:** see [`port/README.md`](port/README.md). In short: `port/deploy.sh pi@<host>`, then reboot. See [`port/DEPENDENCIES.md`](port/DEPENDENCIES.md). Work through [`TODO.html`](TODO.html); open it in a browser, and your progress is saved locally.
 
@@ -16,7 +16,7 @@ udev, venv, Joy Detector service), and every test passes on the installed system
 
 | Area | Buster (official) | Bookworm / Trixie |
 |---|---|---|
-| Kernel | 5.10 | 6.6 / 6.12 — out-of-tree AIY drivers need API fixes |
+| Kernel | 5.10 | 6.12 / 6.18 — out-of-tree AIY drivers need API fixes |
 | Camera | legacy MMAL + `picamera` | libcamera + `picamera2` only |
 | GPIO | sysfs, base 0 | chardev preferred, gpiochip base moved (512 on 6.6) |
 | Python | 3.7, system pip | 3.11 / 3.13, venv required (PEP 668) |
@@ -44,4 +44,4 @@ flowchart TD
 | [`TODO.html`](TODO.html) | Interactive checklist with links. |
 | [`CLAUDE.md`](CLAUDE.md) | Notes for Claude Code working in this repo. |
 | `vendor/` | Binaries saved from the reference card (`aiy-binaries.tgz`: firmware and models) plus `baseline/` logs and photos. Kept out of git. |
-| `port/` | `DEPENDENCIES.md` (porting inventory and status), `drivers/` (patched for 6.12), `drivers-6.12.patch`. |
+| `port/` | `DEPENDENCIES.md` (porting inventory and status), `drivers/` (patched for 6.12 and 6.18), `drivers.patch`, `python.patch`, `install.sh`. |

@@ -1,6 +1,6 @@
-# AIY Vision Kit v1 on Raspberry Pi OS Bookworm: install
+# AIY Vision Kit v1 on Raspberry Pi OS Bookworm / Trixie: install
 
-Turns a freshly flashed **Raspberry Pi OS Lite (32-bit) Bookworm** card into a working Vision Kit:
+Turns a freshly flashed **Raspberry Pi OS Lite (32-bit) Bookworm or Trixie** card into a working Vision Kit:
 Myriad drivers (DKMS), camera inference through picamera2, LEDs/button/buzzer, and the Joy Detector at boot.
 
 ## What you need
@@ -18,7 +18,9 @@ Myriad drivers (DKMS), camera inference through picamera2, LEDs/button/buzzer, a
 
 ## Install
 
-1. In Raspberry Pi Imager, flash **Raspberry Pi OS Lite (32-bit)**. In its settings, set a hostname, a user, Wi-Fi, and SSH with your public key.
+1. In Raspberry Pi Imager, flash **Raspberry Pi OS Lite (32-bit)**, Bookworm or Trixie. In its settings, set a hostname, a user, Wi-Fi, and SSH with your public key.
+   `deploy.sh` needs passwordless sudo. Bookworm gives the first user that by default; on Trixie run once:
+   `ssh -t pi@vision-kit.local 'echo "pi ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/010_pi-nopasswd && sudo chmod 0440 /etc/sudoers.d/010_pi-nopasswd'`
 2. From this repo on your computer:
 
    ```bash

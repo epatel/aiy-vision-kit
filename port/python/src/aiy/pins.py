@@ -138,6 +138,7 @@ class SysFsPin:
 
     def __init__(self, spec, fs_root):
         self._pin = spec.pin
+        self._spec_name = spec.name
         self._name = spec.name
         self._fs_root = fs_root
         # Ensure things start out unexported.
@@ -158,6 +159,17 @@ class SysFsPin:
                 export.write('%d' % self._pin)
         except IOError:
             raise GPIOPinInUse('Pin already in use')
+        # Up to kernel 6.12 an exported GPIO directory is named after the line
+        # (AIY_USER0); newer kernels always use gpio<N>.
+        candidates = (self._spec_name, 'gpio%d' % self._pin)
+        for _ in range(500):
+            for name in candidates:
+                if os.path.isdir(os.path.join(self._fs_root, name)):
+                    self._name = name
+                    return
+            time.sleep(.01)
+        raise IOError('Exported pin did not appear: %s' % ' or '.join(
+            os.path.join(self._fs_root, name) for name in candidates))
 
     def unexport(self):
         with open(self.root_path('unexport'), 'w') as unexport:
@@ -174,13 +186,14 @@ class SysFsPin:
 
         We must wait because the the file system needs to grant permissions for the
         newly created node."""
-        while True:
+        for _ in range(500):
             try:
                 with open(self.property_path(prop), 'w'):
                     pass
                 return
             except IOError:
                 time.sleep(.01)
+        raise IOError('No write access to %s' % self.property_path(prop))
 
     def get_value(self):
         raise NotImplementedError('Value getting not implemented')

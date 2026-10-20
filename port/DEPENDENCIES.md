@@ -16,7 +16,7 @@ On the Bookworm card (`pi@vision-kit.local`, kernel `6.12.109+rpt-rpi-v6`, Pytho
 - `aiy-vision`, `aiy-io-i2c`, `gpio-aiy-io`, `aiy-adc` and `leds-ktd202x` build and autoload at boot.
   They log "Myriad ready" about 56 s after boot, and `/dev/vision_spicomm` is created with mode 0666.
 - `face_detection.py --input view2.jpg` gives **exactly** the Buster result (`face_score=0.87744140625`, box `(2613, 679, 436, 436)`).
-- Changes: `port/drivers/` (`port/drivers-6.12.patch` is the diff against upstream). Build with `make -C <dir>` on the Pi.
+- Changes: `port/drivers/` (`port/drivers.patch` is the diff against upstream). Build with `make -C <dir>` on the Pi.
   Install to `/lib/modules/$(uname -r)/updates/aiy/` and run `depmod -a`. DKMS packaging comes in Phase 6.
 
 **Answers to earlier "?" items**
@@ -35,7 +35,7 @@ On the Bookworm card (`pi@vision-kit.local`, kernel `6.12.109+rpt-rpi-v6`, Pytho
   180° flip) is what the Myriad needs. **No firmware or driver change was needed:** frames reach the bonnet with any client streaming in that mode
   (`rpicam-vid --mode 1640:1232:10:P` or picamera2).
 - `aiy/camera.py` (`port/python/src/`) is a picamera-compatible shim on Picamera2 0.3.31. It provides `PiCamera`, `PiCameraCircularIO` and `Color`.
-  The examples only change their import (`port/python-bookworm.patch`). Unlike the old library, the sensor starts streaming in the constructor.
+  The examples only change their import (`port/python.patch`). Unlike the old library, the sensor starts streaming in the constructor.
 - Verified on the device:
   - `face_detection_camera.py` runs at about 8–9 fps (Buster: about 10–15 fps; see "open" below).
   - `camera_face_snapshot.py` boxes line up exactly with the faces in a capture taken at the same time, so orientation and coordinates match Buster.
@@ -81,8 +81,25 @@ All seven modules build and load at boot (`pwm-soft` through `/etc/modules-load.
   lgpio creates `.lgd-nfy*` files in the working directory, and a service starts in `/`, so the unit sets `WorkingDirectory=~`.
 - Re-running `install.sh` rebuilds DKMS every time (about 10 minutes). A possible improvement is to skip the build when the source hasn't changed.
 
+## Status: Trixie (2026-10-20)
+
+On a **freshly flashed** Raspberry Pi OS Lite 32-bit Trixie card (kernel **6.18.50+rpt-rpi-v6**, Python 3.13.5, picamera2 0.3.38,
+protobuf 4.21.12, Pillow 11.1, NumPy 2.2, gpiozero 2.0.1, dkms 3.2.2), `deploy.sh` worked on the first run, with no packages added by hand.
+That also covers the fresh-card test: `install.sh`'s package list is complete.
+- New kernel breaks: `gpio_chip.set` returns `int` (6.17), and `hrtimer_init()` was replaced by `hrtimer_setup()` (6.13). Both are fixed behind
+  `LINUX_VERSION_CODE`, so the same source builds on 6.12 and 6.18. The legacy GPIO API and sysfs GPIO are still enabled
+  (`CONFIG_GPIOLIB_LEGACY=y`, `CONFIG_GPIO_SYSFS_LEGACY=y`).
+- **The sysfs export directory is now always `gpio<N>`**. On 6.12 it was named after the line (`AIY_USER0`), and `pins.py` waited for that
+  forever. `SysFsPin.export()` now uses whichever directory appears, and both of its waits time out after 5 s instead of looping.
+- Python 3.13 / Pillow 11 / NumPy 2: `joy_detection_demo.py` used `FreeTypeFont.getsize()` (removed in Pillow 10), so it now uses `getbbox()`.
+  `video_capture.py` used `np.int` (removed in NumPy 1.24, so it was already broken on Bookworm), and now uses `int`.
+- protobuf is the same 3.21.12 as Bookworm, so the old `protocol_pb2.py` still works (P1 isn't needed).
+- Verified: all 7 modules autoload, "Myriad ready" about 72 s after boot, the Joy Detector service detects faces, `hardware_check.py` all OK,
+  still-image face detection identical to Buster, live camera about 8–11 fps, shim smoke test OK.
+- Trixie's Imager image doesn't give `pi` passwordless sudo. `deploy.sh` needs it (see `port/README.md`).
+
 **Still open**
-- **Fresh-flash test (p6-3):** a newly flashed card with only `deploy.sh` run on it. This checks the apt package list catches everything development installed by hand.
+- ~~**Fresh-flash test (p6-3):**~~ Done on Trixie (above). Not repeated on Bookworm: a newly flashed card with only `deploy.sh` run on it. This checks the apt package list catches everything development installed by hand.
 - Joy demo photo on button press, the `joy_detection_demo` systemd service, and the streaming server (`--enable_streaming`) haven't been tried.
 
 ## Summary

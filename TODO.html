@@ -133,7 +133,7 @@ const PHASES = [
       ['p3-3', 'Open picamera2 with a 1640×1232 binned sensor mode at 30 fps', [['Picamera2 manual', R + 'picamera2-manual.pdf'], ['picamera2 README', R + 'picamera2/README.md']]],
       ['p3-4', 'While it streams, run <code>CameraInference(face_detection)</code> and check results', [], 'risk'],
       ['p3-5', 'If it fails, compare CSI timing, lanes and mode with the Buster baseline (<code>vcgencmd</code>, <code>dmesg</code>)', []],
-      ['p3-6', 'Write <code>aiy/camera.py</code>, a shim that keeps the <code>PiCamera(sensor_mode=4, …)</code> call pattern', [['camera.py', 'port/python/src/aiy/camera.py'], ['patch', 'port/python-bookworm.patch']]],
+      ['p3-6', 'Write <code>aiy/camera.py</code>, a shim that keeps the <code>PiCamera(sensor_mode=4, …)</code> call pattern', [['camera.py', 'port/python/src/aiy/camera.py'], ['patch', 'port/python.patch']]],
       ['p3-7', 'Port the annotator overlay (or drop it on headless setups)', [['annotator.py', D + 'src/aiy/vision/annotator.py']]],
     ]},
   { id: 'p4', title: 'Phase 4 · Python library',

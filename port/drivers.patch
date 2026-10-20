@@ -1,4 +1,4 @@
-diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/gpio/Makefile port/drivers/aiy/aiy/gpio/Makefile
+diff --color -ru -x debian -x make.sh -x dkms.conf docs/aiyprojects-raspbian/drivers/aiy/aiy/gpio/Makefile port/drivers/aiy/aiy/gpio/Makefile
 --- docs/aiyprojects-raspbian/drivers/aiy/aiy/gpio/Makefile	2026-10-20 17:54:28
 +++ port/drivers/aiy/aiy/gpio/Makefile	2026-10-20 19:07:50
 @@ -3,8 +3,8 @@
@@ -12,10 +12,10 @@ diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/
 -	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(PWD) clean
 +	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) clean
  
-diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/gpio/gpio-aiy-io.c port/drivers/aiy/aiy/gpio/gpio-aiy-io.c
+diff --color -ru -x debian -x make.sh -x dkms.conf docs/aiyprojects-raspbian/drivers/aiy/aiy/gpio/gpio-aiy-io.c port/drivers/aiy/aiy/gpio/gpio-aiy-io.c
 --- docs/aiyprojects-raspbian/drivers/aiy/aiy/gpio/gpio-aiy-io.c	2026-10-20 17:54:28
-+++ port/drivers/aiy/aiy/gpio/gpio-aiy-io.c	2026-10-20 19:12:48
-@@ -19,6 +19,7 @@
++++ port/drivers/aiy/aiy/gpio/gpio-aiy-io.c	2026-10-20 21:40:29
+@@ -19,10 +19,12 @@
  #include <linux/device.h>
  #include <linux/err.h>
  #include <linux/gpio.h>
@@ -23,7 +23,33 @@ diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/
  #include <linux/i2c.h>
  #include <linux/module.h>
  #include <linux/platform_device.h>
-@@ -182,10 +183,9 @@
+ #include <linux/slab.h>
++#include <linux/version.h>
+ 
+ static const char *const aiy_gpio_names[AIY_GPIO_PIN_COUNT] = {
+ 	"AIY_PA02",
+@@ -124,11 +126,20 @@
+ 	return err;
+ }
+ 
++/* gpio_chip.set returns int since 6.17 (void on Bookworm's 6.12). */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
++static int aiy_gpio_set(struct gpio_chip *chip, unsigned int offset, int value)
++{
++	dev_dbg(chip->parent, "Set GPIO #%d to value %d\n", offset, value);
++	return aiy_gpio_set_impl(chip, offset, value);
++}
++#else
+ static void aiy_gpio_set(struct gpio_chip *chip, unsigned int offset, int value)
+ {
+ 	dev_dbg(chip->parent, "Set GPIO #%d to value %d\n", offset, value);
+ 	aiy_gpio_set_impl(chip, offset, value);
+ }
++#endif
+ 
+ static int aiy_gpio_direction_output(struct gpio_chip *chip,
+ 				     unsigned int offset, int value)
+@@ -182,10 +193,9 @@
  	return 0;
  }
  
@@ -35,7 +61,7 @@ diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/
  }
  
  static const struct of_device_id aiy_gpio_of_match[] = {
-diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/iio/adc/Makefile port/drivers/aiy/aiy/iio/adc/Makefile
+diff --color -ru -x debian -x make.sh -x dkms.conf docs/aiyprojects-raspbian/drivers/aiy/aiy/iio/adc/Makefile port/drivers/aiy/aiy/iio/adc/Makefile
 --- docs/aiyprojects-raspbian/drivers/aiy/aiy/iio/adc/Makefile	2026-10-20 17:54:28
 +++ port/drivers/aiy/aiy/iio/adc/Makefile	2026-10-20 19:07:50
 @@ -3,8 +3,8 @@
@@ -49,7 +75,7 @@ diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/
 -	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(PWD) clean
 +	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) clean
  
-diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/iio/adc/aiy-adc.c port/drivers/aiy/aiy/iio/adc/aiy-adc.c
+diff --color -ru -x debian -x make.sh -x dkms.conf docs/aiyprojects-raspbian/drivers/aiy/aiy/iio/adc/aiy-adc.c port/drivers/aiy/aiy/iio/adc/aiy-adc.c
 --- docs/aiyprojects-raspbian/drivers/aiy/aiy/iio/adc/aiy-adc.c	2026-10-20 17:54:28
 +++ port/drivers/aiy/aiy/iio/adc/aiy-adc.c	2026-10-20 19:56:11
 @@ -147,9 +147,11 @@
@@ -88,7 +114,7 @@ diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/
  }
  
  static const struct of_device_id aiy_adc_of_match[] = {
-diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/mfd/Makefile port/drivers/aiy/aiy/mfd/Makefile
+diff --color -ru -x debian -x make.sh -x dkms.conf docs/aiyprojects-raspbian/drivers/aiy/aiy/mfd/Makefile port/drivers/aiy/aiy/mfd/Makefile
 --- docs/aiyprojects-raspbian/drivers/aiy/aiy/mfd/Makefile	2026-10-20 17:54:28
 +++ port/drivers/aiy/aiy/mfd/Makefile	2026-10-20 19:07:50
 @@ -3,8 +3,8 @@
@@ -102,7 +128,7 @@ diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/
 -	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(PWD) clean
 +	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) clean
  
-diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/mfd/aiy-io-i2c.c port/drivers/aiy/aiy/mfd/aiy-io-i2c.c
+diff --color -ru -x debian -x make.sh -x dkms.conf docs/aiyprojects-raspbian/drivers/aiy/aiy/mfd/aiy-io-i2c.c port/drivers/aiy/aiy/mfd/aiy-io-i2c.c
 --- docs/aiyprojects-raspbian/drivers/aiy/aiy/mfd/aiy-io-i2c.c	2026-10-20 17:54:28
 +++ port/drivers/aiy/aiy/mfd/aiy-io-i2c.c	2026-10-20 19:09:54
 @@ -322,8 +322,7 @@
@@ -132,7 +158,7 @@ diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/
  }
  
  static const struct of_device_id aiy_io_i2c_of_match[] = {
-diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/pwm/Makefile port/drivers/aiy/aiy/pwm/Makefile
+diff --color -ru -x debian -x make.sh -x dkms.conf docs/aiyprojects-raspbian/drivers/aiy/aiy/pwm/Makefile port/drivers/aiy/aiy/pwm/Makefile
 --- docs/aiyprojects-raspbian/drivers/aiy/aiy/pwm/Makefile	2026-10-20 17:54:28
 +++ port/drivers/aiy/aiy/pwm/Makefile	2026-10-20 19:07:50
 @@ -3,8 +3,8 @@
@@ -146,7 +172,7 @@ diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/
 -	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(PWD) clean
 +	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) clean
  
-diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/pwm/pwm-aiy-io.c port/drivers/aiy/aiy/pwm/pwm-aiy-io.c
+diff --color -ru -x debian -x make.sh -x dkms.conf docs/aiyprojects-raspbian/drivers/aiy/aiy/pwm/pwm-aiy-io.c port/drivers/aiy/aiy/pwm/pwm-aiy-io.c
 --- docs/aiyprojects-raspbian/drivers/aiy/aiy/pwm/pwm-aiy-io.c	2026-10-20 17:54:28
 +++ port/drivers/aiy/aiy/pwm/pwm-aiy-io.c	2026-10-20 19:55:30
 @@ -18,13 +18,14 @@
@@ -476,7 +502,7 @@ diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/aiy/aiy/
  }
  
  static const struct of_device_id aiy_pwm_of_match[] = {
-diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/leds/Makefile port/drivers/leds/Makefile
+diff --color -ru -x debian -x make.sh -x dkms.conf docs/aiyprojects-raspbian/drivers/leds/Makefile port/drivers/leds/Makefile
 --- docs/aiyprojects-raspbian/drivers/leds/Makefile	2026-10-20 17:54:28
 +++ port/drivers/leds/Makefile	2026-10-20 19:07:50
 @@ -2,9 +2,9 @@
@@ -491,7 +517,7 @@ diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/leds/Mak
 +	        $(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) clean
  
  
-diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/leds/leds-ktd202x.c port/drivers/leds/leds-ktd202x.c
+diff --color -ru -x debian -x make.sh -x dkms.conf docs/aiyprojects-raspbian/drivers/leds/leds-ktd202x.c port/drivers/leds/leds-ktd202x.c
 --- docs/aiyprojects-raspbian/drivers/leds/leds-ktd202x.c	2026-10-20 17:54:28
 +++ port/drivers/leds/leds-ktd202x.c	2026-10-20 19:09:53
 @@ -541,9 +541,9 @@
@@ -522,7 +548,7 @@ diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/leds/led
  }
  
  static const struct of_device_id ktd202x_of_match[] = {
-diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/pwm/Makefile port/drivers/pwm/Makefile
+diff --color -ru -x debian -x make.sh -x dkms.conf docs/aiyprojects-raspbian/drivers/pwm/Makefile port/drivers/pwm/Makefile
 --- docs/aiyprojects-raspbian/drivers/pwm/Makefile	2026-10-20 17:54:28
 +++ port/drivers/pwm/Makefile	2026-10-20 19:07:50
 @@ -2,9 +2,9 @@
@@ -537,9 +563,9 @@ diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/pwm/Make
 +	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) clean
  
  
-diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/pwm/pwm-soft.c port/drivers/pwm/pwm-soft.c
+diff --color -ru -x debian -x make.sh -x dkms.conf docs/aiyprojects-raspbian/drivers/pwm/pwm-soft.c port/drivers/pwm/pwm-soft.c
 --- docs/aiyprojects-raspbian/drivers/pwm/pwm-soft.c	2026-10-20 17:54:28
-+++ port/drivers/pwm/pwm-soft.c	2026-10-20 19:55:03
++++ port/drivers/pwm/pwm-soft.c	2026-10-20 21:40:30
 @@ -51,6 +51,10 @@
   * on the system. It's wasteful to preallocate the entire table,
   * but avoiding race conditions is so much easier this way ;-)
@@ -616,7 +642,20 @@ diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/pwm/pwm-
          desc->counter++;
  
          if (desc->pulses > 0) desc->pulses--;
-@@ -420,7 +426,7 @@
+@@ -392,8 +398,12 @@
+   printk(KERN_INFO "SoftPWM v0.1 initializing.\n");
+   printk(KERN_INFO "Clock resolution is %u ns\n", hrtimer_resolution);
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,13,0)
++  hrtimer_setup(&hr_timer, soft_pwm_hrtimer_callback, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
++#else
+   hrtimer_init(&hr_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+   hr_timer.function = &soft_pwm_hrtimer_callback;
++#endif
+ 
+   status = class_register(&soft_pwm_class);
+   if (status < 0) goto fail_no_class;
+@@ -420,7 +430,7 @@
      desc = &pwm_table[gpio];
  
      if (test_bit(FLAG_SOFTPWM,&desc->flags)) {
@@ -625,7 +664,7 @@ diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/pwm/pwm-
        status = pwm_unexport(gpio);
        if (status==0) gpio_free(gpio);
      }
-diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/vision/Makefile port/drivers/vision/Makefile
+diff --color -ru -x debian -x make.sh -x dkms.conf docs/aiyprojects-raspbian/drivers/vision/Makefile port/drivers/vision/Makefile
 --- docs/aiyprojects-raspbian/drivers/vision/Makefile	2026-10-20 17:54:28
 +++ port/drivers/vision/Makefile	2026-10-20 19:07:50
 @@ -3,7 +3,7 @@
@@ -638,7 +677,7 @@ diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/vision/M
  clean:
 -	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(PWD) clean
 +	$(MAKE) -C /lib/modules/$(KVERSION)/build M=$(CURDIR) clean
-diff --color -ru -x debian -x make.sh docs/aiyprojects-raspbian/drivers/vision/aiy-vision.c port/drivers/vision/aiy-vision.c
+diff --color -ru -x debian -x make.sh -x dkms.conf docs/aiyprojects-raspbian/drivers/vision/aiy-vision.c port/drivers/vision/aiy-vision.c
 --- docs/aiyprojects-raspbian/drivers/vision/aiy-vision.c	2026-10-20 17:54:28
 +++ port/drivers/vision/aiy-vision.c	2026-10-20 19:26:47
 @@ -35,6 +35,7 @@

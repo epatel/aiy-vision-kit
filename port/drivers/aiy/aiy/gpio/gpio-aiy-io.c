@@ -24,6 +24,7 @@
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
+#include <linux/version.h>
 
 static const char *const aiy_gpio_names[AIY_GPIO_PIN_COUNT] = {
 	"AIY_PA02",
@@ -125,11 +126,20 @@ static int aiy_gpio_set_impl(struct gpio_chip *chip, unsigned int offset,
 	return err;
 }
 
+/* gpio_chip.set returns int since 6.17 (void on Bookworm's 6.12). */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
+static int aiy_gpio_set(struct gpio_chip *chip, unsigned int offset, int value)
+{
+	dev_dbg(chip->parent, "Set GPIO #%d to value %d\n", offset, value);
+	return aiy_gpio_set_impl(chip, offset, value);
+}
+#else
 static void aiy_gpio_set(struct gpio_chip *chip, unsigned int offset, int value)
 {
 	dev_dbg(chip->parent, "Set GPIO #%d to value %d\n", offset, value);
 	aiy_gpio_set_impl(chip, offset, value);
 }
+#endif
 
 static int aiy_gpio_direction_output(struct gpio_chip *chip,
 				     unsigned int offset, int value)

@@ -204,7 +204,8 @@ class Photographer(Service):
     def _draw_face(self, draw, face, scale_x, scale_y):
         x, y, width, height = scale_bounding_box(face.bounding_box, scale_x, scale_y)
         text = 'Joy: %.2f' % face.joy_score
-        _, text_height = self._font.getsize(text)
+        # FreeTypeFont.getsize() was removed in Pillow 10; getbbox()[3] is its height.
+        text_height = self._font.getbbox(text)[3]
         margin = 3
         bottom = y + height
         text_bottom = bottom + margin + text_height + margin

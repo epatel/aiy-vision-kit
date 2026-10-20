@@ -54,9 +54,9 @@ from aiy.vision.models import image_classification
 
 def crop_parameters(im, range_x=(0, 1), range_y=(0, 1)):
     """Yields crop parameters for the given x- and y-ranges"""
-    size = np.array(im.size).astype(np.int)
-    crop_size = (size / 4).astype(np.int)
-    step = (crop_size / 2).astype(np.int)
+    size = np.array(im.size).astype(int)
+    crop_size = (size / 4).astype(int)
+    step = (crop_size / 2).astype(int)
 
     x_start = int(range_x[0] * size[0])
     x_end = int(range_x[1] * size[0] - crop_size[0]) + 1
